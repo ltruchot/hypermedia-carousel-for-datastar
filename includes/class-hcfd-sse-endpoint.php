@@ -258,11 +258,19 @@ final class Sse_Endpoint {
 	 * stream. None of it would show up in a log.
 	 */
 	private static function clear_the_way(): void {
-		// phpcs:disable WordPress.PHP.IniSet.Risky -- see the docblock: the alternative is a corrupted stream.
+		/*
+		 * Three linters object to these, and all three are right in general and
+		 * wrong here. Turning error display off for the length of one streaming
+		 * response is not "changing production error reporting": it is the only
+		 * way a notice raised by somebody else's code does not end up inside a
+		 * text/event-stream body. Nothing is turned back on afterwards because
+		 * the request ends here.
+		 */
+		// phpcs:disable WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged, PluginCheck.CodeAnalysis.PHPErrorReporting, WordPress.PHP.NoSilencedErrors.Discouraged
 		@ini_set( 'display_errors', '0' );
 		@ini_set( 'html_errors', '0' );
 		@ini_set( 'zlib.output_compression', '0' );
-		// phpcs:enable WordPress.PHP.IniSet.Risky
+		// phpcs:enable WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged, PluginCheck.CodeAnalysis.PHPErrorReporting, WordPress.PHP.NoSilencedErrors.Discouraged
 
 		if ( function_exists( 'apache_setenv' ) ) {
 			@apache_setenv( 'no-gzip', '1' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged

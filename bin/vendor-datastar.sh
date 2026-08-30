@@ -49,6 +49,20 @@ mkdir -p "$SDK_DIR"
 cp -R "$src/." "$SDK_DIR/"
 cp "$work/datastar-php-${SDK_TAG}/LICENSE.md" "$SDK_DIR/LICENSE.md"
 
+# The upstream tarball carries its own .gitattributes. A dot file inside the
+# plugin is an outright error for Plugin Check ("Hidden files are not
+# permitted"), and .distignore cannot reach a nested one.
+rm -f "$SDK_DIR/.gitattributes"
+
+# Vendor only the code paths this plugin uses. Three event classes are for
+# features it does not have; shipping them would mean asking a reviewer to read
+# code that never runs. Removing a file the loader then never requires is safe
+# in a way that editing one would not be.
+for unused in events/ExecuteScript.php events/Location.php events/RemoveElements.php; do
+	[ -f "$SDK_DIR/$unused" ] || die "expected to remove $unused, but it is not there -- upstream moved, re-read the diff"
+	rm -f "$SDK_DIR/$unused"
+done
+
 # Rewrite the namespace, and add the direct-access guard WordPress expects on
 # every PHP file. Those are the only two changes made to upstream code; the
 # MIT headers are left exactly as they are.
@@ -59,6 +73,52 @@ find "$SDK_DIR" -name '*.php' -print0 | while IFS= read -r -d '' file; do
 	# placed above it is a parse error in every one of these files.
 	perl -0pi -e "s{^(namespace [^;]+;\\n)}{\$1\ndefined( 'ABSPATH' ) || exit;\n}m" "$file"
 done
+
+# readSignals() is replaced, not deleted. It reads $_GET and $_SERVER with no
+# guards -- on a request without signals PHP 8 raises "Undefined array key",
+# and with WP_DEBUG_DISPLAY on that warning prints INTO the event stream and
+# makes it unparseable. WordPress plugins have a better source for request
+# parameters anyway: WP_REST_Request, which validates them declaratively.
+#
+# A throwing stub rather than a deletion, so that the class keeps its shape and
+# a future caller gets a sentence instead of a "call to undefined method".
+python3 - "$SDK_DIR/ServerSentEventGenerator.php" <<'PYEOF'
+import re, sys, pathlib
+
+path = pathlib.Path(sys.argv[1])
+source = path.read_text()
+
+start = source.find('    public static function readSignals(): array')
+if start == -1:
+    sys.exit('vendor-datastar: readSignals() not found -- upstream moved, re-read the diff')
+
+# Walk the braces of the method body so this survives reformatting upstream.
+open_brace = source.index('{', start)
+depth, end = 0, None
+for i in range(open_brace, len(source)):
+    if source[i] == '{':
+        depth += 1
+    elif source[i] == '}':
+        depth -= 1
+        if depth == 0:
+            end = i + 1
+            break
+if end is None:
+    sys.exit('vendor-datastar: could not find the end of readSignals()')
+
+stub = """    public static function readSignals(): array
+    {
+        // Replaced while vendoring; see UPSTREAM.md. The original reads $_GET
+        // and $_SERVER without guards, which can print a PHP warning into the
+        // event stream. Read parameters from WP_REST_Request instead.
+        throw new \\RuntimeException(
+            'readSignals() is not available in this vendored copy of the Datastar SDK. Read request parameters from WP_REST_Request.'
+        );
+    }"""
+
+path.write_text(source[:start] + stub + source[end:])
+print('vendor-datastar: readSignals() replaced by a throwing stub')
+PYEOF
 
 # A loader instead of an autoloader: thirteen requires are easier to audit than
 # six hundred lines of Composer's ClassLoader, and nothing here has a dependency.
@@ -110,9 +170,35 @@ cat > "$SDK_DIR/UPSTREAM.md" <<EOF
    collide — either fatally, or silently, which is worse.
 2. \`defined( 'ABSPATH' ) || exit;\` was added under the opening tag of each
    file, as the plugin directory expects of every PHP file.
-3. \`loader.php\` was generated. There is no Composer autoloader.
+3. \`readSignals()\` was replaced by a stub that throws. The original reads
+   \`\$_GET\` and \`\$_SERVER\` with no guards; on a request without signals PHP 8
+   raises *Undefined array key*, and with \`WP_DEBUG_DISPLAY\` on that warning
+   prints **into the event stream** and makes it unparseable. This plugin reads
+   its parameters from \`WP_REST_Request\`, which validates them declaratively.
+   A throwing stub rather than a deletion, so the class keeps its shape and a
+   future caller gets a sentence instead of a fatal.
+4. \`loader.php\` was generated. There is no Composer autoloader.
 
 The MIT headers are untouched. \`readme.txt\` credits the project.
+
+## What is deliberately NOT vendored
+
+\`events/ExecuteScript.php\`, \`events/Location.php\` and \`events/RemoveElements.php\` are
+removed: this plugin emits element and signal patches only, and shipping code that
+never runs only gives a reviewer more to read. Upstream's \`.gitattributes\` is
+removed too — a hidden file inside a plugin is an error for Plugin Check.
+
+## Findings Plugin Check reports here, and why they stand
+
+Three come from this library and are inherent to what it does. They are **not**
+patched, because patching vendored code is how a fork starts:
+
+| Where | Finding | Why it stands |
+|---|---|---|
+| \`ServerSentEventGenerator::sendEvent()\` | \`EscapeOutput.OutputNotEscaped\` on \`echo \$output\` | That echo **is** the SSE frame. Escaping happens where the markup is composed, in \`HCFD\\Slides\`, which is the only place that knows what is data and what is markup. |
+| \`PatchElements::getMode()\` / \`getNamespace()\` | \`EscapeOutput.ExceptionNotEscaped\` (x2) | Exception messages built from a hard-coded enum. No user input reaches them. |
+| \`ServerSentEventGenerator::headers()\` | \`MissingUnslash\`, \`InputNotSanitized\` on \`\$_SERVER['SERVER_PROTOCOL']\` | Compared against the literal \`'HTTP/1.1'\` to decide whether a \`Connection\` header is legal. The value is never echoed, stored, or used to build anything. |
+| \`ServerSentEventGenerator::readSignals()\` | four \`ValidatedSanitizedInput\` warnings and a nonce warning | **This plugin never calls that method.** It reads \`\$_GET\` and \`\$_SERVER\` without guards; parameters come from \`WP_REST_Request\` instead, which validates them declaratively. |
 
 ## Refreshing
 

@@ -1,6 +1,7 @@
 # Everything here is development scaffolding and stays out of the plugin ZIP.
 .git
 .gitattributes
+.gitignore
 .github
 .claude
 .distignore

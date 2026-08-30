@@ -46,14 +46,12 @@ class ServerSentEventGenerator
      */
     public static function readSignals(): array
     {
-        if (in_array($_SERVER['REQUEST_METHOD'], ['GET', 'DELETE'])) {
-            $input = $_GET[Consts::DATASTAR_KEY];
-        } else {
-            $input = file_get_contents('php://input');
-        }
-        $signals = $input ? json_decode($input, true) : [];
-
-        return is_array($signals) ? $signals : [];
+        // Replaced while vendoring; see UPSTREAM.md. The original reads $_GET
+        // and $_SERVER without guards, which can print a PHP warning into the
+        // event stream. Read parameters from WP_REST_Request instead.
+        throw new \RuntimeException(
+            'readSignals() is not available in this vendored copy of the Datastar SDK. Read request parameters from WP_REST_Request.'
+        );
     }
 
     /**
