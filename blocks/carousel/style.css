@@ -1,0 +1,121 @@
+/*
+ * Front-end styles for the Hypermedia Carousel block.
+ *
+ * Deliberately thin. A carousel belongs to the theme that hosts it, so this
+ * file only does what the block cannot work without: stack the slides, make the
+ * controls usable, and keep the accessible labels out of sight without taking
+ * them out of the accessibility tree.
+ */
+
+.wp-block-hcfd-carousel .hcfd-carousel {
+	position: relative;
+}
+
+.wp-block-hcfd-carousel .hcfd-slide img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+/*
+ * Only the visible slide carries the transition name. Two elements sharing one
+ * name at the same instant make the browser drop the transition entirely, which
+ * is why the name is per instance (see render.php) and why it is scoped to the
+ * slide that is actually on screen.
+ */
+.wp-block-hcfd-carousel .hcfd-slide:not([hidden]) {
+	view-transition-name: var(--hcfd-name);
+}
+
+/* Controls ---------------------------------------------------------------- */
+
+.wp-block-hcfd-carousel .hcfd-controls {
+	position: absolute;
+	z-index: 2;
+	inset-block-end: 0.5rem;
+	inset-inline-end: 0.5rem;
+	display: flex;
+	gap: 0.25rem;
+}
+
+.wp-block-hcfd-carousel .hcfd-button {
+	/*
+	 * 44px, well past the 24x24 that WCAG 2.5.8 asks for. These sit on top of a
+	 * photograph, where a small target is genuinely hard to hit.
+	 */
+	display: grid;
+	place-items: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	color: #fff;
+	cursor: pointer;
+	background: rgb(0 0 0 / 55%);
+	border: 1px solid rgb(255 255 255 / 70%);
+	border-radius: 50%;
+}
+
+.wp-block-hcfd-carousel .hcfd-button:hover {
+	background: rgb(0 0 0 / 75%);
+}
+
+.wp-block-hcfd-carousel .hcfd-button:focus-visible {
+	outline: 2px solid currentcolor;
+	outline-offset: 2px;
+}
+
+/* Glyphs drawn in CSS: no icon font, no SVG file, nothing extra to fetch. */
+.wp-block-hcfd-carousel .hcfd-button::before {
+	content: "";
+	display: block;
+	width: 10px;
+	height: 12px;
+	background: currentcolor;
+}
+
+.wp-block-hcfd-carousel .hcfd-button--toggle::before {
+	/* Two bars: pause. */
+	clip-path: polygon(0 0, 35% 0, 35% 100%, 0 100%, 0 0, 65% 0, 100% 0, 100% 100%, 65% 100%, 65% 0);
+}
+
+.wp-block-hcfd-carousel .hcfd-button--toggle.is-paused::before {
+	/* One triangle: play. Same element, so the button never changes size. */
+	clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.wp-block-hcfd-carousel .hcfd-button--prev::before {
+	clip-path: polygon(100% 0, 100% 100%, 0 50%);
+}
+
+.wp-block-hcfd-carousel .hcfd-button--next::before {
+	clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* Accessible names -------------------------------------------------------- */
+
+/*
+ * Out of sight, still in the accessibility tree. `display: none` would take the
+ * name away from the button and leave three unlabelled circles.
+ */
+.wp-block-hcfd-carousel .hcfd-sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* Reduced motion ---------------------------------------------------------- */
+
+/*
+ * This only silences the animation. Stopping the rotation itself is done in the
+ * Datastar expression that drives it, because no stylesheet can stop a timer.
+ */
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none !important;
+	}
+}

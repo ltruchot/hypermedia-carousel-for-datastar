@@ -1,0 +1,182 @@
+<?php
+/**
+ * The plugin's only setting: how many seconds a slide stays on screen.
+ *
+ * @package HypermediaCarouselForDatastar
+ */
+
+namespace HCFD;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Reads and writes the rotation interval.
+ */
+final class Settings {
+
+	/** Option name. Also hard-coded in uninstall.php, which cannot load this class. */
+	public const OPTION = 'hcfd_settings';
+
+	/** Settings group, used by register_setting() and settings_fields(). */
+	private const GROUP = 'hcfd';
+
+	/** Shortest interval a human can follow, in seconds. */
+	public const MIN_INTERVAL = 3;
+
+	/** Longest interval that still reads as a carousel rather than a bug. */
+	public const MAX_INTERVAL = 60;
+
+	/** Shipped defaults. */
+	public const DEFAULTS = array( 'interval' => 5 );
+
+	/**
+	 * Hooks the setting up.
+	 *
+	 * On `init`, not `admin_init`. register_setting() installs the default
+	 * through the `default_option_{$option}` filter, and only for the request
+	 * that called it -- registering on `admin_init` alone would make
+	 * get_option() return false on the front end until someone opened the
+	 * settings page. Reading through defaults() covers the same ground twice,
+	 * on purpose.
+	 */
+	public static function init(): void {
+		add_action( 'init', array( __CLASS__, 'register' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'add_page' ) );
+	}
+
+	/**
+	 * Declares the option.
+	 */
+	public static function register(): void {
+		register_setting(
+			self::GROUP,
+			self::OPTION,
+			array(
+				'type'              => 'object',
+				'default'           => self::DEFAULTS,
+				'show_in_rest'      => false,
+				'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+			)
+		);
+	}
+
+	/**
+	 * Clamps the submitted interval into range and says so when it had to.
+	 *
+	 * @param mixed $input Raw value from the settings form.
+	 * @return array<string, int> Sanitised settings.
+	 */
+	public static function sanitize( $input ): array {
+		$raw      = is_array( $input ) && isset( $input['interval'] ) ? $input['interval'] : self::DEFAULTS['interval'];
+		$interval = absint( $raw );
+
+		if ( $interval < self::MIN_INTERVAL || $interval > self::MAX_INTERVAL ) {
+			add_settings_error(
+				self::OPTION,
+				'hcfd_interval_range',
+				sprintf(
+					/* translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds. */
+					__( 'The rotation interval must be between %1$d and %2$d seconds. Your value was adjusted.', 'hypermedia-carousel-for-datastar' ),
+					self::MIN_INTERVAL,
+					self::MAX_INTERVAL
+				),
+				'warning'
+			);
+			$interval = max( self::MIN_INTERVAL, min( self::MAX_INTERVAL, $interval ) );
+		}
+
+		return array( 'interval' => $interval );
+	}
+
+	/**
+	 * Returns the rotation interval in seconds, always within range.
+	 *
+	 * Never call get_option() for this directly: a site whose option row was
+	 * written by an older version, or by hand, can hold anything at all.
+	 */
+	public static function interval(): int {
+		$stored   = wp_parse_args( (array) get_option( self::OPTION, array() ), self::DEFAULTS );
+		$interval = absint( $stored['interval'] );
+
+		return max( self::MIN_INTERVAL, min( self::MAX_INTERVAL, $interval ) );
+	}
+
+	/**
+	 * Adds the settings page under Settings.
+	 *
+	 * Not a top-level menu: one plugin, one option, no business being in the
+	 * admin sidebar next to Posts and Media.
+	 */
+	public static function add_page(): void {
+		add_options_page(
+			__( 'Hypermedia Carousel', 'hypermedia-carousel-for-datastar' ),
+			__( 'Hypermedia Carousel', 'hypermedia-carousel-for-datastar' ),
+			'manage_options',
+			'hcfd',
+			array( __CLASS__, 'render_page' )
+		);
+	}
+
+	/**
+	 * Renders the settings page.
+	 *
+	 * Hand-written rather than run through add_settings_section() and
+	 * add_settings_field(): for a single number, those add three callbacks and
+	 * a layer of indirection without adding a thing a reader can use. The nonce
+	 * and the capability check still come from settings_fields() and
+	 * options.php, which is the part that actually matters.
+	 */
+	public static function render_page(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		?>
+		<div class="wrap">
+			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+
+			<p>
+				<?php esc_html_e( 'Pick the images inside the Hypermedia Carousel block. This page holds the one setting shared by every carousel on the site.', 'hypermedia-carousel-for-datastar' ); ?>
+			</p>
+
+			<form action="options.php" method="post">
+				<?php settings_fields( self::GROUP ); ?>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row">
+							<label for="hcfd-interval">
+								<?php esc_html_e( 'Seconds per slide', 'hypermedia-carousel-for-datastar' ); ?>
+							</label>
+						</th>
+						<td>
+							<input
+								type="number"
+								id="hcfd-interval"
+								name="<?php echo esc_attr( self::OPTION ); ?>[interval]"
+								value="<?php echo esc_attr( (string) self::interval() ); ?>"
+								min="<?php echo esc_attr( (string) self::MIN_INTERVAL ); ?>"
+								max="<?php echo esc_attr( (string) self::MAX_INTERVAL ); ?>"
+								step="1"
+								required
+								class="small-text"
+							>
+							<p class="description">
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds. */
+										__( 'Between %1$d and %2$d. A carousel of a single image never rotates, whatever this says.', 'hypermedia-carousel-for-datastar' ),
+										self::MIN_INTERVAL,
+										self::MAX_INTERVAL
+									)
+								);
+								?>
+							</p>
+						</td>
+					</tr>
+				</table>
+				<?php submit_button(); ?>
+			</form>
+		</div>
+		<?php
+	}
+}

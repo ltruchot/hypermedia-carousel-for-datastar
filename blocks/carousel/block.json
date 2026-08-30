@@ -1,0 +1,43 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hcfd/carousel",
+	"version": "0.1.0",
+	"title": "Hypermedia Carousel",
+	"category": "media",
+	"icon": "images-alt2",
+	"description": "Ships one slide in the page and streams the rest over Server-Sent Events, so a carousel costs what a single image costs.",
+	"keywords": [ "carousel", "slideshow", "gallery", "slider" ],
+	"textdomain": "hypermedia-carousel-for-datastar",
+	"attributes": {
+		"ids": {
+			"type": "array",
+			"items": { "type": "number" },
+			"default": []
+		},
+		"sizeSlug": {
+			"type": "string",
+			"default": "large"
+		},
+		"ariaLabel": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"anchor": true,
+		"align": [ "wide", "full" ],
+		"spacing": { "margin": true, "padding": true },
+		"color": { "background": true, "text": false },
+		"interactivity": false
+	},
+	"example": {
+		"attributes": { "ids": [] }
+	},
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./editor.css",
+	"style": "file:./style.css",
+	"viewScriptModule": "hcfd-datastar",
+	"render": "file:./render.php"
+}

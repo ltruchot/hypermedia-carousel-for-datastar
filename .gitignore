@@ -1,0 +1,5 @@
+# Rien de construit ici : ce dépôt est la source ET ce qui est publié.
+.DS_Store
+node_modules/
+vendor/
+*.zip
