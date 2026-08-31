@@ -19,7 +19,7 @@ msgstr ""
 #. Plugin Name of the plugin
 #: hypermedia-carousel-for-datastar.php
 msgid "Hypermedia Carousel for Datastar"
-msgstr "Diaporama ultraléger pour Datastar"
+msgstr "Diaporama ultraléger via SSE"
 
 #. Plugin URI of the plugin
 #: hypermedia-carousel-for-datastar.php
@@ -69,7 +69,7 @@ msgstr "Image suivante"
 #: hypermedia-carousel-for-datastar.php:55
 #, php-format
 msgid "Hypermedia Carousel for Datastar requires PHP %1$s and WordPress %2$s or later."
-msgstr "Diaporama ultraléger pour Datastar demande PHP %1$s et WordPress %2$s ou plus récents."
+msgstr "Diaporama ultraléger via SSE demande PHP %1$s et WordPress %2$s ou plus récents."
 
 #: includes/class-settings.php:89
 msgid "Settings"

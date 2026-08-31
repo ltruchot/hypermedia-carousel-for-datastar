@@ -75,9 +75,13 @@ so leaving them undocumented would make every such theme depend on an accident.
 | `hcfd-track` | Wraps the slides, carries `aria-live`. |
 | `hcfd-slide` | One slide. Off-screen ones carry `hidden`. |
 
-Two things **are** styled, and they are not a look: a minimum target size
-(24px, 44px on a coarse pointer) and a focus ring drawn in black *and* white so
-it cannot vanish against a photograph. A control too small to hit, or whose
+Two things **are** styled, and they are not a look: the reachable area of a
+control (24px, 44px on a coarse pointer) and a focus ring drawn in black *and*
+white so it cannot vanish against a photograph. The reachable area is widened
+with an invisible `::after`, not by resizing the button — WCAG 2.5.8 asks it of
+the target, not of what is drawn, and three 44px circles on a small carousel eat
+half its width. `::after` on a control is reserved for this and never painted;
+a theme has `::before` for its glyph. A control too small to hit, or whose
 focus cannot be seen, is broken rather than unstyled — and it would be broken
 for every site that installs this, not only for the one that forgot. Both are
 minimums, one class deep, and a theme overrides either with a single rule.

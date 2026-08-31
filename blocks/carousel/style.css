@@ -45,16 +45,38 @@
  * with a single class -- these selectors are one class deep on purpose.
  */
 .wp-block-hcfd-carousel .hcfd-button {
-	/* WCAG 2.5.8 asks 24 by 24 for a pointer, and a finger needs 44. Minimums,
-	 * so a theme can make them bigger and never smaller. */
-	min-inline-size: 24px;
-	min-block-size: 24px;
+	/*
+	 * The reachable area, widened without widening the control.
+	 *
+	 * WCAG 2.5.8 asks 24 by 24 for a pointer and a finger wants 44, but it asks
+	 * it of the TARGET, not of what is drawn. Forcing the visible button to 44
+	 * would hand every theme a decision that is theirs: on a small carousel
+	 * three 44px circles eat half the width, and the criterion never asked for
+	 * that. So the button keeps whatever size the theme gives it, and this
+	 * pseudo-element -- invisible, with no content -- extends what a finger can
+	 * hit.
+	 *
+	 * `::after` on a control is therefore reserved by this plugin and never
+	 * painted; a theme that needs one has `::before`, which is what the glyph
+	 * usually goes on.
+	 */
+	position: relative;
+
+	--hcfd-target: 24px;
+
+	&::after {
+		position: absolute;
+
+		/* Negative when the control is smaller than the target, zero when it is
+		 * already bigger: the area never shrinks below what is drawn. */
+		inset: min(0px, calc((100% - var(--hcfd-target)) / 2));
+		content: "";
+	}
 }
 
 @media (pointer: coarse) {
 	.wp-block-hcfd-carousel .hcfd-button {
-		min-inline-size: 44px;
-		min-block-size: 44px;
+		--hcfd-target: 44px;
 	}
 }
 
