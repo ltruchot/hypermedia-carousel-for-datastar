@@ -1,9 +1,13 @@
 /*
- * Editor styles.
+ * Editor styles, and the one place this plugin has an opinion about looks.
  *
- * The preview renders every slide flat, because an author needs to see what
- * they picked. Datastar is a front-end module and is not loaded in the editor,
- * so nothing here rotates.
+ * The exception is deliberate and narrow: this is the block's own authoring
+ * interface, not the site's appearance. None of it is ever served to a visitor.
+ * An author needs to see the images they picked, so the preview lays them out
+ * flat; the front end ships no styles at all -- see style.css.
+ *
+ * Datastar is a front-end module and is not loaded in the editor, so nothing
+ * here rotates.
  */
 
 .wp-block-hcfd-carousel.hcfd--preview .hcfd-track {

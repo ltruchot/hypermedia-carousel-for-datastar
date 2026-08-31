@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -38,6 +38,18 @@ images in the markup anyway and did not care about the first paint.
 The stream is a **single burst that closes at once** — a few hundredths of a second of PHP. It
 never holds a connection open, because on most PHP hosting one held connection is one worker
 taken out of a small pool, and a slideshow is not worth a site's capacity.
+
+= It brings no styles of its own =
+
+The block streams images into a container with an id and fades one into the
+next. That is all it does. It ships no sizing, no positioning, no colour and no
+icons, because only your theme knows how big the box should be, how an image
+that does not match its shape should be cropped or padded, and where the
+controls belong.
+
+Give it a container with a size and the images will fill it. Two class names are
+there for you to style and are never styled here: `hcfd-sr` on the text inside a
+control, and `is-paused` on the play/pause button.
 
 = Content-Security-Policy =
 
@@ -110,6 +122,11 @@ and every change made to it. `bin/vendor-datastar.sh` in the source repository i
 them.
 
 == Changelog ==
+
+= 0.1.1 =
+* The block now ships only the cross-fade and the reduced-motion guarantee. All
+  sizing, positioning, colour and icons were removed: they are the theme's to
+  decide, and a plugin that guesses forces every theme to out-specify the guess.
 
 = 0.1.0 =
 * First release.

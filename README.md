@@ -37,6 +37,27 @@ If you want the reasoning behind a decision rather than the result, the commit
 messages carry it: they say what changed, what was measured, and what was
 rejected.
 
+## It brings no styles of its own
+
+The block streams images into a container with an id and fades one into the
+next. That is its whole job.
+
+It ships **no sizing, no positioning, no colour and no icons**. Only the theme
+knows how big the box should be, how an image that does not match its shape
+should be cropped or padded or blurred at the edges, and where the controls
+belong — so those decisions are left where the knowledge is. A plugin that
+guessed would force every theme to out-specify the guess.
+
+`blocks/carousel/style.css` is forty lines and contains exactly two things: the
+`view-transition-name` that makes the browser cross-fade one slide into the
+next, and the promise that `prefers-reduced-motion` means no motion. Two class
+names are provided as hooks and never styled: `hcfd-sr` on the text inside a
+control, and `is-paused` on the play/pause button.
+
+`editor.css` is the one exception, and a narrow one: it lays the slides out flat
+in the editor so an author can see what they picked. None of it reaches a
+visitor.
+
 ## How it works
 
 1. The block's server render emits slide 1, the shell, the controls, and slides 2..n inside a

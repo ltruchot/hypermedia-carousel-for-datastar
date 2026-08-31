@@ -26,8 +26,24 @@ final class Settings {
 	/** Longest interval that still reads as a carousel rather than a bug. */
 	public const MAX_INTERVAL = 60;
 
+	/**
+	 * View transitions the block can ask the browser for.
+	 *
+	 * The slides arrive from the server, so what happens between two of them is
+	 * a View Transition and not a CSS animation: the browser takes a snapshot
+	 * either side of the patch and interpolates between them.
+	 *
+	 * Deliberately a list rather than a boolean: `none` and `fade` are what
+	 * exists today, and the next one is meant to slot in beside them without
+	 * changing the shape of the setting or of what reads it.
+	 */
+	public const TRANSITIONS = array( 'fade', 'none' );
+
 	/** Shipped defaults. */
-	public const DEFAULTS = array( 'interval' => 5 );
+	public const DEFAULTS = array(
+		'interval'   => 5,
+		'transition' => 'fade',
+	);
 
 	/**
 	 * Hooks the setting up.
@@ -84,7 +100,38 @@ final class Settings {
 			);
 		}
 
-		return array( 'interval' => $interval );
+		return array(
+			'interval'   => $interval,
+			'transition' => self::to_transition(
+				is_array( $input ) && isset( $input['transition'] ) ? $input['transition'] : null
+			),
+		);
+	}
+
+	/**
+	 * Keeps only a transition this version knows how to play.
+	 *
+	 * An unknown value means the option was written by another version or by
+	 * hand. Falling back to the shipped default is the only safe reading: a
+	 * name that reaches the markup unchecked would set a view-transition-name
+	 * nobody defined, and the browser would cross-fade the whole page.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string One of self::TRANSITIONS.
+	 */
+	private static function to_transition( $value ): string {
+		return in_array( $value, self::TRANSITIONS, true ) ? (string) $value : self::DEFAULTS['transition'];
+	}
+
+	/**
+	 * Returns the transition to play between two slides.
+	 *
+	 * @return string One of self::TRANSITIONS.
+	 */
+	public static function transition(): string {
+		$stored = wp_parse_args( (array) get_option( self::OPTION, array() ), self::DEFAULTS );
+
+		return self::to_transition( $stored['transition'] );
 	}
 
 	/**
@@ -187,6 +234,36 @@ final class Settings {
 									)
 								);
 								?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="hcfd-transition">
+								<?php esc_html_e( 'View transition', 'hypermedia-carousel-for-datastar' ); ?>
+							</label>
+						</th>
+						<td>
+							<select id="hcfd-transition" name="<?php echo esc_attr( self::OPTION ); ?>[transition]">
+								<?php
+								$hcfd_labels  = array(
+									'fade' => __( 'Cross-fade — the browser fades one slide into the next', 'hypermedia-carousel-for-datastar' ),
+									'none' => __( 'None — the slide is simply replaced', 'hypermedia-carousel-for-datastar' ),
+								);
+								$hcfd_current = self::transition();
+
+								foreach ( self::TRANSITIONS as $hcfd_transition ) {
+									printf(
+										'<option value="%1$s"%2$s>%3$s</option>',
+										esc_attr( $hcfd_transition ),
+										selected( $hcfd_transition, $hcfd_current, false ),
+										esc_html( $hcfd_labels[ $hcfd_transition ] ?? $hcfd_transition )
+									);
+								}
+								?>
+							</select>
+							<p class="description">
+								<?php esc_html_e( 'Visitors who asked their system for reduced motion never get a transition, whatever this says.', 'hypermedia-carousel-for-datastar' ); ?>
 							</p>
 						</td>
 					</tr>

@@ -47,6 +47,33 @@ test.describe( 'the carousel', () => {
 		expect( after ).not.toBe( before );
 	} );
 
+	test( 'asks the browser for a view transition, under the shipped setting', async ( { page } ) => {
+		await page.goto( `/${ FIXTURES.many.slug }/` );
+		await waitForBurst( page, FIXTURES.many.slides );
+
+		// The slides come from the server, so what happens between two of them
+		// is a View Transition rather than a CSS animation. The name is per
+		// instance: two elements sharing one at the same moment make the
+		// browser abandon the transition entirely.
+		const name = await page.evaluate(
+			() => getComputedStyle( document.querySelector( '.hcfd-slide:not([hidden])' )! ).viewTransitionName
+		);
+
+		expect( name ).toMatch( /^hcfd-[a-f0-9]{12}$/ );
+
+		// Turning it off has to remove BOTH halves. A __viewtransition modifier
+		// left behind with no name on any slide makes the browser cross-fade
+		// the whole page -- more motion than switching it off asked for, not
+		// less.
+		const modifiers = await page.evaluate( () =>
+			[ ...document.querySelectorAll( '*' ) ].flatMap( ( el ) =>
+				[ ...el.attributes ].map( ( a ) => a.name ).filter( ( n ) => n.includes( 'viewtransition' ) )
+			)
+		);
+
+		expect( modifiers.length ).toBeGreaterThan( 0 );
+	} );
+
 	test( 'a single image never rotates and needs no shell', async ( { page } ) => {
 		await page.goto( `/${ FIXTURES.one.slug }/` );
 

@@ -244,10 +244,18 @@ final class Sse_Endpoint {
 			$signal
 		);
 
+		// The modifier goes in only when a View Transition was asked for.
+		// Wrapping the change in startViewTransition without a
+		// view-transition-name on any slide makes the browser cross-fade the
+		// entire page -- far more motion than switching the setting off was
+		// meant to produce.
+		$modifier = 'fade' === Settings::transition() ? '__viewtransition' : '';
+
 		return sprintf(
-			'<div id="%1$s-cadence" hidden data-on-interval__duration.%2$ds__viewtransition="%3$s"></div>',
+			'<div id="%1$s-cadence" hidden data-on-interval__duration.%2$ds%3$s="%4$s"></div>',
 			esc_attr( $target ),
 			Settings::interval(),
+			esc_attr( $modifier ),
 			esc_attr( $advance )
 		);
 	}

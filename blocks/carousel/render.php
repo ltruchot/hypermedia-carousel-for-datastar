@@ -12,6 +12,7 @@
  */
 
 use HCFD\Block;
+use HCFD\Settings;
 use HCFD\Slides;
 
 defined( 'ABSPATH' ) || exit;
@@ -34,6 +35,17 @@ if ( '' === $hcfd_label ) {
 
 $hcfd_dom_id = Slides::dom_id( $hcfd_ids, $hcfd_size, Block::next_instance() );
 $hcfd_signal = Slides::signal_key( $hcfd_dom_id );
+
+/*
+ * Whether the browser is asked for a View Transition between two slides.
+ *
+ * It has to reach three places at once, and half of it would be worse than
+ * none: without a view-transition-name on the slide, wrapping the change in
+ * startViewTransition makes the browser cross-fade the WHOLE PAGE, which is a
+ * good deal more motion than the visitor turned off.
+ */
+$hcfd_fades = 'fade' === Settings::transition();
+$hcfd_vt    = $hcfd_fades ? '__viewtransition' : '';
 
 /*
  * The editor previews a dynamic block by rendering it through the REST block
@@ -117,9 +129,17 @@ $hcfd_init = sprintf(
 		 * moment, or the browser abandons the transition. Two carousels on one
 		 * page would do exactly that, so the name is derived per instance and
 		 * handed to the stylesheet through a custom property.
+		 *
+		 * Left unset when the transition is off: the stylesheet's
+		 * `view-transition-name: var(--hcfd-name)` then has nothing to resolve
+		 * to, the declaration falls back to `none`, and no snapshot is taken.
 		 */
-		?>
+		if ( $hcfd_fades ) :
+			?>
 		style="--hcfd-name: <?php echo esc_attr( $hcfd_dom_id ); ?>"
+			<?php
+		endif;
+		?>
 		data-signals="<?php echo esc_attr( (string) $hcfd_signals ); ?>"
 		data-init__delay.500ms="<?php echo esc_attr( $hcfd_init ); ?>"
 	>
@@ -158,7 +178,7 @@ $hcfd_init = sprintf(
 			<button
 				type="button"
 				class="hcfd-button hcfd-button--prev"
-				data-on:click__viewtransition="$<?php echo esc_attr( $hcfd_signal ); ?>.paused = true; $<?php echo esc_attr( $hcfd_signal ); ?>.view = ($<?php echo esc_attr( $hcfd_signal ); ?>.view + $<?php echo esc_attr( $hcfd_signal ); ?>.count - 1) % $<?php echo esc_attr( $hcfd_signal ); ?>.count"
+				data-on:click<?php echo esc_attr( $hcfd_vt ); ?>="$<?php echo esc_attr( $hcfd_signal ); ?>.paused = true; $<?php echo esc_attr( $hcfd_signal ); ?>.view = ($<?php echo esc_attr( $hcfd_signal ); ?>.view + $<?php echo esc_attr( $hcfd_signal ); ?>.count - 1) % $<?php echo esc_attr( $hcfd_signal ); ?>.count"
 			>
 				<span class="hcfd-sr"><?php esc_html_e( 'Previous slide', 'hypermedia-carousel-for-datastar' ); ?></span>
 			</button>
@@ -166,7 +186,7 @@ $hcfd_init = sprintf(
 			<button
 				type="button"
 				class="hcfd-button hcfd-button--next"
-				data-on:click__viewtransition="$<?php echo esc_attr( $hcfd_signal ); ?>.paused = true; $<?php echo esc_attr( $hcfd_signal ); ?>.view = ($<?php echo esc_attr( $hcfd_signal ); ?>.view + 1) % $<?php echo esc_attr( $hcfd_signal ); ?>.count"
+				data-on:click<?php echo esc_attr( $hcfd_vt ); ?>="$<?php echo esc_attr( $hcfd_signal ); ?>.paused = true; $<?php echo esc_attr( $hcfd_signal ); ?>.view = ($<?php echo esc_attr( $hcfd_signal ); ?>.view + 1) % $<?php echo esc_attr( $hcfd_signal ); ?>.count"
 			>
 				<span class="hcfd-sr"><?php esc_html_e( 'Next slide', 'hypermedia-carousel-for-datastar' ); ?></span>
 			</button>

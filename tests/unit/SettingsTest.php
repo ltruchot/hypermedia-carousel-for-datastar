@@ -39,10 +39,7 @@ final class SettingsTest extends TestCase {
 	 * @dataProvider provide_submitted_values
 	 */
 	public function test_the_stored_interval_is_always_within_range( $submitted, int $expected ): void {
-		$this->assertSame(
-			array( 'interval' => $expected ),
-			Settings::sanitize( array( 'interval' => $submitted ) )
-		);
+		$this->assertSame( $expected, Settings::sanitize( array( 'interval' => $submitted ) )['interval'] );
 	}
 
 	public static function provide_submitted_values(): array {
@@ -64,25 +61,28 @@ final class SettingsTest extends TestCase {
 		);
 	}
 
-	public function test_a_submission_shaped_like_nothing_expected_falls_back_to_the_default(): void {
-		$this->assertSame( array( 'interval' => 5 ), Settings::sanitize( 'not an array' ) );
-		$this->assertSame( array( 'interval' => 5 ), Settings::sanitize( array() ) );
-		$this->assertSame( array( 'interval' => 5 ), Settings::sanitize( array( 'autre' => 9 ) ) );
+	public function test_a_submission_shaped_like_nothing_expected_falls_back_to_the_defaults(): void {
+		foreach ( array( 'not an array', array(), array( 'autre' => 9 ) ) as $nonsense ) {
+			$this->assertSame( Settings::DEFAULTS, Settings::sanitize( $nonsense ) );
+		}
 	}
 
-	public function test_the_sanitiser_never_returns_anything_but_the_one_key(): void {
+	public function test_the_sanitiser_never_returns_a_key_it_did_not_declare(): void {
 		// A settings callback that let an extra key through would store it, and
-		// whatever wrote it would then be read back by interval().
+		// whatever wrote it would be read back later as if the plugin had put
+		// it there.
 		$out = Settings::sanitize(
 			array(
-				'interval' => 5,
-				'evil'     => '<script>',
-				'x'        => array(),
+				'interval'   => 5,
+				'transition' => 'fade',
+				'evil'       => '<script>',
+				'x'          => array(),
 			)
 		);
 
-		$this->assertSame( array( 'interval' ), array_keys( $out ) );
+		$this->assertSame( array_keys( Settings::DEFAULTS ), array_keys( $out ) );
 		$this->assertIsInt( $out['interval'] );
+		$this->assertIsString( $out['transition'] );
 	}
 
 	/**
@@ -109,6 +109,53 @@ final class SettingsTest extends TestCase {
 			'pas un tableau' => array( 'corrompu', 5 ),
 			'cle inattendue' => array( array( 'autre' => 1 ), 5 ),
 		);
+	}
+
+	/**
+	 * @dataProvider provide_submitted_transitions
+	 */
+	public function test_only_a_transition_this_version_can_play_is_stored( $submitted, string $expected ): void {
+		$this->assertSame( $expected, Settings::sanitize( array( 'transition' => $submitted ) )['transition'] );
+	}
+
+	public static function provide_submitted_transitions(): array {
+		return array(
+			'fondu'             => array( 'fade', 'fade' ),
+			'aucune'            => array( 'none', 'none' ),
+			// Un nom inconnu poserait un view-transition-name que personne n'a
+			// defini, et le navigateur ferait un fondu de la page entiere.
+			'un nom invente'    => array( 'slide', 'fade' ),
+			'une injection'     => array( 'fade;--x', 'fade' ),
+			'la mauvaise casse' => array( 'FADE', 'fade' ),
+			'un nombre'         => array( 1, 'fade' ),
+			'un tableau'        => array( array( 'fade' ), 'fade' ),
+			'null'              => array( null, 'fade' ),
+		);
+	}
+
+	/**
+	 * @dataProvider provide_stored_transitions
+	 */
+	public function test_a_corrupt_stored_transition_falls_back_to_the_default( $stored, string $expected ): void {
+		Functions\when( 'get_option' )->justReturn( $stored );
+
+		$this->assertSame( $expected, Settings::transition() );
+	}
+
+	public static function provide_stored_transitions(): array {
+		return array(
+			'absente'        => array( array(), 'fade' ),
+			'aucune'         => array( array( 'transition' => 'none' ), 'none' ),
+			'inconnue'       => array( array( 'transition' => 'zoom' ), 'fade' ),
+			'pas un tableau' => array( 'corrompu', 'fade' ),
+		);
+	}
+
+	public function test_the_default_transition_is_one_the_plugin_offers(): void {
+		// The select is built from TRANSITIONS; a default outside it would show
+		// no option selected and change on the first save.
+		$this->assertContains( Settings::DEFAULTS['transition'], Settings::TRANSITIONS );
+		$this->assertSame( array( 'fade', 'none' ), Settings::TRANSITIONS );
 	}
 
 	public function test_the_bounds_are_the_ones_the_form_advertises(): void {
