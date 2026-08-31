@@ -86,7 +86,7 @@ so leaving them undocumented would make every such theme depend on an accident.
 |---|---|
 | `hcfd-carousel` | The container: id, ARIA region, signals. |
 | `hcfd-track` | Wraps the slides and stacks them. |
-| `hcfd-slide` | One slide. The ones off screen carry `hidden`. |
+| `hcfd-slide` | One slide. The ones off screen carry `hidden`, and the stylesheet renders them `display: block; visibility: hidden` — out of the accessibility tree and the tab order, but still able to fade. |
 | `--hcfd-fade` | Custom property: the length of the cross-fade. The plugin writes the configured value here, or `0ms` when the setting says no transition; the stylesheet falls back to `1000ms` if it is unset. |
 
 ### Only one layer moves, and that is not a detail
@@ -105,6 +105,24 @@ leaves 1. A theme that restyles `z-index` inside the track has to preserve that.
 It also means nothing fades **in**, which removes an entry animation the plugin
 used to have to arm after the burst — and with it the risk of fading in the
 first slide, almost always the LCP element, on every visit.
+
+### Why `visibility` and not a discrete `display` transition
+
+Holding the outgoing slide on screen with `transition: display … allow-discrete`
+is the modern answer and it is not portable. Measured on the live site:
+Chromium 151 held the slide for the length of the fade; **Firefox 153 set
+`display: none` on the first frame** — while reporting
+`transition-behavior: allow-discrete` and answering `true` to
+`CSS.supports( 'transition-behavior', 'allow-discrete' )`.
+
+`visibility` needs no discrete-transition support, is animatable everywhere, and
+stays `visible` until the transition ends. It removes the slide from the
+accessibility tree and from the tab order exactly as `display: none` did, which
+was the whole reason for using the `hidden` attribute rather than `opacity: 0`.
+
+The `display: block` that goes with it carries `!important`, because the HTML
+rendering spec writes `[hidden] { display: none !important }` and a normal
+author declaration loses to it.
 
 ### Each slide paints as one piece
 

@@ -348,6 +348,30 @@ coup, parce que toutes les assertions portaient sur `getComputedStyle` :
    d'opacité : l'image à mi-fondu différait de l'état d'arrivée de **4 %** des pixels — une coupe
    sèche. Parade : `isolation: isolate` sur chaque diapositive. Même instant, **95 %** et **99 %**.
 
+3. **0.3.1** — le fondu marchait sur Chromium et **n'existait pas du tout sur Firefox**. La
+   sortante était retenue à l'écran par `transition: display … allow-discrete` ; Firefox 153
+   annonce le support (`CSS.supports('transition-behavior','allow-discrete')` rend `true`, et le
+   style calculé dit bien `normal, allow-discrete`) **et pose `display: none` dès la première
+   image**. Parade portable : une diapositive au repos est
+   `display: block !important; visibility: hidden`. `visibility` n'a besoin d'aucun support de
+   transition discrète, s'anime partout, reste `visible` jusqu'à la fin — et retire l'élément de
+   l'arbre d'accessibilité et de l'ordre de tabulation exactement comme `display: none`, ce qui
+   était toute la raison d'utiliser l'attribut `hidden`. Le `!important` répond à la feuille du
+   navigateur, qui écrit `[hidden] { display: none !important }`.
+
+   **Et il faut alors que la transition soit portée par l'état SORTANT** — `.hcfd-slide[hidden]`,
+   pas `.hcfd-slide`. Une transition est choisie par l'état vers lequel on va : déclarée sur
+   l'état visible, elle ferait aussi **fondre l'entrante**, et le flash du point 1 reviendrait
+   (mesuré : 0,56 + 0,44, couverture 0,75).
+
+**Corollaire, et c'est le plus cher des trois : un moteur n'est pas « evergreen ».** La suite de
+bout en bout de cette extension a tourné sur **Chromium seul** pendant trois versions, pendant que
+le readme annonçait des navigateurs evergreen. Le défaut ci-dessus était invisible par construction.
+Elle tourne désormais sur deux moteurs, et la contre-épreuve le prouve : l'ancienne mécanique
+**passe sur Chromium et échoue sur Firefox**. **À faire** : quand une extension repose sur une
+primitive CSS récente, la mesurer dans au moins deux moteurs — et se méfier de `CSS.supports`, qui
+a répondu `true` ici sur une fonctionnalité qui ne faisait rien.
+
 **La leçon commune, et elle vaut pour tout CSS d'extension** : `opacity`, `z-index` et `display`
 lus au calcul décrivent une **intention**, pas une peinture. Ce qui décide, c'est l'ordre
 d'empilement — et il dépend de ce que le **thème** met dans l'élément, ce qu'une page de fixture nue

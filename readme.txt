@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -175,30 +175,18 @@ them.
 
 == Changelog ==
 
-= 0.3.1 =
-* **The cross-fade was invisible under some themes, and 0.3.0 shipped it that
-  way.** A slide was not a stacking context, so a theme writing
-  `img { position: relative; z-index: 1 }` inside it lifted the incoming image
-  out and painted it above the outgoing slide. Measured mid-fade with the
-  outgoing slide at 0.78 opacity: the frame differed from the settled result by
-  4 % of the pixels — a hard cut. Each slide now paints as one piece
-  (`isolation: isolate`), and the same instant differs by 95 % and 99 %.
-* A theme may style anything inside a slide; it can no longer lift it out.
-
-= 0.3.0 =
-* **The cross-fade no longer flashes.** Both slides used to fade at once, and
-  two half-transparent layers do not add up to an opaque one: measured mid-swap,
-  0.49 over 0.51 covered 0.75 of the box, so a quarter of the container showed
-  through — a flash of light. The slide leaving is now painted on top and fades
-  out over one already opaque. Coverage never leaves 1.
-* **New setting: how long the cross-fade takes**, 100 to 2000 milliseconds,
-  1000 by default. A page held in a cache keeps the length it was rendered with.
-* Time on screen now accepts half seconds, 2.5 to 25 instead of 3 to 60. The
-  longest cross-fade stays under the shortest time on screen, so an image always
-  has a moment of rest.
-* Breaking change: `hcfd-live` is gone with the entry animation it armed.
-  Nothing fades in any more, so the first image — usually the largest thing on
-  the page — is painted at full opacity as soon as it arrives.
+= 0.3.2 =
+* **The cross-fade did nothing at all in Firefox.** The outgoing slide was held
+  on screen with `transition: display … allow-discrete`; Firefox 153 reports
+  that as supported and sets `display: none` on the first frame anyway, so every
+  Firefox visitor got a hard cut. A slide at rest is now
+  `display: block; visibility: hidden`, which needs no discrete transition and
+  removes it from the accessibility tree and the tab order just the same.
+* The transition is declared on the state a slide moves TO when it LEAVES, so a
+  slide still arrives instantly, under the one going out. Coverage never
+  leaves 1 and the swap still cannot flash.
+* The end-to-end suite now runs on two engines. It ran on Chromium alone for
+  three releases, which is why nothing said any of this.
 
 Earlier releases: see the repository's history. Only the current release is kept
 here, because this file has a 10 KiB budget and a changelog grows for ever.

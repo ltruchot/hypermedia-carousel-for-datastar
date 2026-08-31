@@ -90,7 +90,16 @@ test.describe( 'the carousel', () => {
 		const layers = await page.evaluate( () =>
 			[ ...document.querySelectorAll( '.hcfd-track > .hcfd-slide' ) ]
 				.map( ( el, order ) => ( { order, style: getComputedStyle( el ) } ) )
-				.filter( ( layer ) => layer.style.display !== 'none' )
+				// Visibility as well as display: a slide at rest is now
+				// `display: block; visibility: hidden`, because the discrete
+				// `display` transition that used to hold the outgoing slide on
+				// screen does nothing in Firefox. Filtering on display alone would
+				// count all five slides as being on screen.
+				.filter(
+					( layer ) =>
+						layer.style.display !== 'none' &&
+						layer.style.visibility !== 'hidden'
+				)
 				.map( ( layer ) => ( {
 					order: layer.order,
 					opacity: Number( layer.style.opacity ),

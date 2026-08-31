@@ -44,6 +44,7 @@
 .wp-block-hcfd-carousel .hcfd-slide {
 	grid-area: 1 / 1;
 	opacity: 1;
+	visibility: visible;
 
 	/*
 	 * Each slide paints as one piece, and this is load-bearing.
@@ -67,42 +68,55 @@
 	isolation: isolate;
 
 	/*
-	 * `display` is in the list on purpose, with `allow-discrete`.
+	 * NO TRANSITION HERE, AND THAT IS THE POINT.
 	 *
-	 * A slide at rest carries the `hidden` attribute, so it is `display: none`
-	 * -- out of the accessibility tree and out of the tab order, which an
-	 * opacity-0 slide would not be. That is not negotiable, and it is also not
-	 * animatable: `display` jumps. `allow-discrete` makes the browser hold the
-	 * outgoing slide displayed for the length of the fade, and display the
-	 * incoming one before it -- which is exactly the pair of moments a
-	 * cross-fade needs.
+	 * A transition is chosen by the state being moved TO. Declaring none on the
+	 * visible state means a slide ARRIVES instantly, at full opacity, under the
+	 * one that is leaving. That is what keeps the swap free of the flash: two
+	 * half-transparent layers do not add up to an opaque one -- measured, 0.49
+	 * over 0.51 covered 0.75 of the box, and the quarter of background showing
+	 * through reads as a flash of light.
 	 */
-	transition:
-		opacity var(--hcfd-fade, 1000ms) ease,
-		display var(--hcfd-fade, 1000ms) allow-discrete;
 }
 
 .wp-block-hcfd-carousel .hcfd-slide[hidden] {
+	/*
+	 * `display` is put back, and `visibility` carries the meaning instead.
+	 *
+	 * The obvious way to hold the outgoing slide on screen is
+	 * `transition: display … allow-discrete`, and it does not work everywhere.
+	 * Measured on the live site the day it shipped: Chromium 151 held the slide
+	 * for the length of the fade; Firefox 153 set `display: none` on the FIRST
+	 * frame -- while reporting `transition-behavior: allow-discrete` and
+	 * `CSS.supports('transition-behavior','allow-discrete') === true`. The fade
+	 * was a hard cut for every Firefox visitor, and the plugin's suite ran on
+	 * Chromium alone, so nothing said so.
+	 *
+	 * `visibility` needs no discrete-transition support: it is animatable
+	 * everywhere and stays `visible` until the transition ends. It removes the
+	 * slide from the accessibility tree and from the tab order exactly as
+	 * `display: none` did -- which was the whole reason for using the `hidden`
+	 * attribute rather than `opacity: 0`.
+	 */
+	/*
+	 * `!important` is required, and it is the browser's own sheet it answers.
+	 * The HTML rendering spec writes `[hidden] { display: none !important }`, so
+	 * a normal author declaration loses -- measured: without it the slide is
+	 * `display: none` on the first frame and there is no fade at all.
+	 */
+	display: block !important;
+	visibility: hidden;
 	opacity: 0;
 
 	/*
-	 * ONLY ONE LAYER MOVES, AND THAT IS WHAT KILLS THE FLASH.
-	 *
-	 * Fading both slides at once is the obvious way to write a cross-fade, and
-	 * it is wrong: two half-transparent layers do not add up to an opaque one.
-	 * Measured mid-swap, 0.49 over 0.51, the pair covered only 0.75 of the box
-	 * -- a quarter of the container showed through, which on a light background
-	 * reads as a flash of light rather than a dissolve. Lengthening the fade
-	 * makes that worse, not better, because the flash lasts longer.
-	 *
-	 * The slide that is LEAVING carries `hidden`, so this rule puts it on top,
-	 * where it fades out over an incoming slide that is already fully opaque.
-	 * Coverage never leaves 1. It also removes the need for an entry animation
-	 * altogether: nothing fades IN, so nothing has to be armed after the burst,
-	 * and the first slide -- almost always the LCP element -- is painted at full
-	 * opacity the moment it arrives.
+	 * The leaving slide is painted ON TOP, fading out over one that is already
+	 * opaque. Coverage never leaves 1.
 	 */
 	z-index: 1;
+
+	transition:
+		opacity var(--hcfd-fade, 1000ms) ease,
+		visibility var(--hcfd-fade, 1000ms);
 }
 
 /*
@@ -114,7 +128,7 @@
  * drives by writing the signal itself.
  */
 @media (prefers-reduced-motion: reduce) {
-	.wp-block-hcfd-carousel .hcfd-slide {
+	.wp-block-hcfd-carousel .hcfd-slide[hidden] {
 		transition-duration: 0s;
 	}
 }

@@ -29,7 +29,20 @@ export default defineConfig( {
 		baseURL,
 		trace: 'retain-on-failure',
 	},
+	/*
+	 * Two engines, not one.
+	 *
+	 * The plugin says it targets evergreen browsers and was measured on Chromium
+	 * alone for three releases. That is how a cross-fade shipped that Firefox
+	 * turned into a hard cut: `transition-behavior: allow-discrete` on `display`
+	 * is reported as supported there and does not defer the change. Nothing in
+	 * a single-engine suite could have said so.
+	 *
+	 * WebKit would be a third and is not installed on every machine; it is left
+	 * out rather than made a silent skip that looks like a pass.
+	 */
 	projects: [
 		{ name: 'desktop', use: { ...devices[ 'Desktop Chrome' ] } },
+		{ name: 'firefox', use: { ...devices[ 'Desktop Firefox' ] } },
 	],
 } );
