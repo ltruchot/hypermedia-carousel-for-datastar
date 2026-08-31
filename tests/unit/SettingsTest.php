@@ -122,8 +122,8 @@ final class SettingsTest extends TestCase {
 		return array(
 			'fondu'             => array( 'fade', 'fade' ),
 			'aucune'            => array( 'none', 'none' ),
-			// Un nom inconnu poserait un view-transition-name que personne n'a
-			// defini, et le navigateur ferait un fondu de la page entiere.
+			// Un nom inconnu atteindrait le balisage tel quel : la feuille de
+			// style n'a pas de regle pour lui, et l'echange ne se ferait plus.
 			'un nom invente'    => array( 'slide', 'fade' ),
 			'une injection'     => array( 'fade;--x', 'fade' ),
 			'la mauvaise casse' => array( 'FADE', 'fade' ),

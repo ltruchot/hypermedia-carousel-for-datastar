@@ -42,7 +42,7 @@ test.describe( 'the carousel', () => {
 		// The element carrying data-on-interval arrives with the burst; it is
 		// not in the initial markup, which is what lets a cached page still get
 		// today's cadence.
-		await expect( page.locator( '[data-on-interval__duration\\.5s__viewtransition]' ) ).toHaveCount( 1 );
+		await expect( page.locator( '[data-on-interval__duration\\.5s]' ) ).toHaveCount( 1 );
 
 		const before = await visibleSlide( page );
 		await page.waitForTimeout( 6_500 );
@@ -51,38 +51,87 @@ test.describe( 'the carousel', () => {
 		expect( after ).not.toBe( before );
 	} );
 
-	test( 'asks the browser for a view transition, under the shipped setting', async ( { page } ) => {
+	test( 'the swap cross-fades two slides, and asks for nothing wider', async ( { page } ) => {
+		await page.addInitScript( () => {
+			( window as unknown as Record< string, number > ).__vt = 0;
+			const real = document.startViewTransition?.bind( document );
+			if ( real ) {
+				document.startViewTransition = ( ...args: Parameters< typeof real > ) => {
+					( window as unknown as Record< string, number > ).__vt++;
+					return real( ...args );
+				};
+			}
+		} );
+
 		await page.goto( `/${ FIXTURES.many.slug }/` );
 		await waitForBurst( page, FIXTURES.many.slides );
 
-		// The slides come from the server, so what happens between two of them
-		// is a View Transition rather than a CSS animation. The name is per
-		// instance: two elements sharing one at the same moment make the
-		// browser abandon the transition entirely.
-		const name = await page.evaluate(
-			() => getComputedStyle( document.querySelector( '.hcfd-slide:not([hidden])' )! ).viewTransitionName
+		// Lengthened so the middle of the fade can be looked at. This changes how
+		// long the fade takes, not what takes part in it.
+		await page.addStyleTag( { content: '.hcfd-carousel{--hcfd-fade:2s}' } );
+		await page.evaluate( () => {
+			( window as unknown as Record< string, number > ).__swap = 0;
+			new MutationObserver( () => {
+				( window as unknown as Record< string, number > ).__swap++;
+			} ).observe( document.querySelector( '.hcfd-track' )!, {
+				subtree: true,
+				attributes: true,
+				attributeFilter: [ 'hidden' ],
+			} );
+		} );
+
+		await page.waitForFunction(
+			() => ( window as unknown as Record< string, number > ).__swap > 0,
+			null,
+			{ timeout: 20_000 }
+		);
+		await page.waitForTimeout( 900 );
+
+		const onScreen = await page.evaluate( () =>
+			[ ...document.querySelectorAll( '.hcfd-track > .hcfd-slide' ) ]
+				.map( ( el ) => getComputedStyle( el ) )
+				.filter( ( style ) => style.display !== 'none' )
+				.map( ( style ) => Number( style.opacity ) )
 		);
 
-		expect( name ).toMatch( /^hcfd-[a-f0-9]{12}$/ );
+		// Two slides on screen at once, neither of them settled. That is what a
+		// cross-fade IS -- one slide, or two at full opacity, is a cut. The
+		// assertion is written on the movement rather than on the absence of it,
+		// which is the mistake the suite made before: three tests asserted that
+		// nothing changed, and a carousel that had stopped working satisfied all
+		// three.
+		expect( onScreen ).toHaveLength( 2 );
+		onScreen.forEach( ( opacity ) => {
+			expect( opacity ).toBeGreaterThan( 0 );
+			expect( opacity ).toBeLessThan( 1 );
+		} );
 
-		// Turning it off has to remove BOTH halves. A __viewtransition modifier
-		// left behind with no name on any slide makes the browser cross-fade
-		// the whole page -- more motion than switching it off asked for, not
-		// less.
-		const modifiers = await page.evaluate( () =>
-			[ ...document.querySelectorAll( '*' ) ].flatMap( ( el ) =>
-				[ ...el.attributes ].map( ( a ) => a.name ).filter( ( n ) => n.includes( 'viewtransition' ) )
-			)
-		);
+		// And none of it goes through startViewTransition. That call snapshots the
+		// document element, so every swap cross-fades the entire viewport over
+		// itself: measured on a real page, one swap, 597 604 pixels changed
+		// OUTSIDE the carousel -- on a swap where the photograph did not change at
+		// all. Decorative shapes elsewhere flickered on a five second beat.
+		expect(
+			await page.evaluate( () => ( window as unknown as Record< string, number > ).__vt )
+		).toBe( 0 );
+	} );
 
-		expect( modifiers.length ).toBeGreaterThan( 0 );
+	test( 'it ships no controls, by design', async ( { page } ) => {
+		await page.goto( `/${ FIXTURES.many.slug }/` );
+		await waitForBurst( page, FIXTURES.many.slides );
+
+		// A deliberate choice, and it has a price worth naming: with nothing to
+		// stop it, a carousel that runs on its own fails WCAG 2.2.2 (level A).
+		// The readme says so plainly rather than letting a site find out.
+		await expect(
+			page.locator( '.wp-block-hcfd-carousel button, .wp-block-hcfd-carousel [role="button"]' )
+		).toHaveCount( 0 );
 	} );
 
 	test( 'a single image never rotates and needs no shell', async ( { page } ) => {
 		await page.goto( `/${ FIXTURES.one.slug }/` );
 
 		await expect( page.locator( '.hcfd-slide' ) ).toHaveCount( 1 );
-		await expect( page.locator( '.hcfd-button' ) ).toHaveCount( 0 );
 		await expect( page.locator( '.hcfd-carousel' ) ).toHaveCount( 0 );
 
 		// And it never asks the server for anything.
@@ -131,16 +180,22 @@ test.describe( 'the carousel', () => {
 		expect( ids ).toHaveLength( 2 );
 		expect( ids[ 0 ] ).not.toBe( ids[ 1 ] );
 
-		// Datastar signals are global to the document: without a namespace per
-		// instance, pausing one would stop the other.
-		await page.locator( '.hcfd-carousel' ).first().locator( '.hcfd-button--toggle' ).click();
-
-		const firstBefore = await visibleSlide( page, `#${ ids[ 0 ] }` );
-		const secondBefore = await visibleSlide( page, `#${ ids[ 1 ] }` );
-		await page.waitForTimeout( 6_500 );
-
-		expect( await visibleSlide( page, `#${ ids[ 0 ] }` ) ).toBe( firstBefore );
-		expect( await visibleSlide( page, `#${ ids[ 1 ] }` ) ).not.toBe( secondBefore );
+		// Datastar signals are global to the document. These two carousels hold
+		// three photographs and two, so one shared namespace would step them in
+		// lockstep -- and would walk the second one onto a slide it does not have.
+		// Waiting for the pair to DISAGREE is the assertion a shared namespace
+		// could never satisfy.
+		await page.waitForFunction(
+			( pair: string[] ) => {
+				const shown = ( id: string ) =>
+					[ ...document.querySelectorAll( `#${ id } .hcfd-slide` ) ].findIndex(
+						( slide ) => ! slide.hasAttribute( 'hidden' )
+					);
+				return shown( pair[ 0 ] ) !== shown( pair[ 1 ] );
+			},
+			ids,
+			{ timeout: 25_000 }
+		);
 	} );
 
 	test( 'the stream is a single burst that closes at once', async ( { page, request } ) => {

@@ -1,11 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { FIXTURES } from '../fixtures';
-import { controlName, visibleSlide, waitForBurst } from '../helpers';
+import { visibleSlide, waitForBurst } from '../helpers';
 
 /**
- * A carousel that starts on its own is the textbook way to fail WCAG 2.2.2.
- * None of what follows is a nicety.
+ * This carousel starts on its own and cannot be stopped, which is a knowing
+ * failure of WCAG 2.2.2 (level A) and is written down as such in the readme.
+ * Everything else below is a condition of acceptance, not a nicety -- and each
+ * assertion here is written on something the carousel DOES, because assertions
+ * written on what it does not do were satisfied by the carousel being broken.
  */
 test.describe( 'accessibility', () => {
 	test( 'axe finds nothing on the carousel', async ( { page } ) => {
@@ -20,70 +23,40 @@ test.describe( 'accessibility', () => {
 		expect( results.violations.map( ( v ) => `${ v.id }: ${ v.help }` ) ).toEqual( [] );
 	} );
 
-	test( 'axe would notice if the labels went away', async ( { page } ) => {
-		// A green run only means something if the tool is looking. Take the
-		// accessible names off and it must go red -- otherwise the assertion
-		// above is decoration.
+	test( 'axe would notice if the alt text went away', async ( { page } ) => {
+		// A green run only means something if the tool is looking at our subtree.
+		// Take the alternative text off the photograph on screen and it must go
+		// red -- otherwise the assertion above is decoration.
 		await page.goto( `/${ FIXTURES.many.slug }/` );
 		await waitForBurst( page, FIXTURES.many.slides );
-		await page.evaluate( () => document.querySelectorAll( '.hcfd-sr' ).forEach( ( n ) => n.remove() ) );
+		await page.evaluate( () =>
+			document
+				.querySelectorAll( '.hcfd-slide img' )
+				.forEach( ( image ) => image.removeAttribute( 'alt' ) )
+		);
 
 		const results = await new AxeBuilder( { page } )
 			.withTags( [ 'wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa' ] )
 			.include( '.wp-block-hcfd-carousel' )
 			.analyze();
 
-		expect( results.violations.map( ( v ) => v.id ) ).toContain( 'button-name' );
+		expect( results.violations.map( ( v ) => v.id ) ).toContain( 'image-alt' );
 	} );
 
-	test( 'the stop button comes before the movement', async ( { page } ) => {
-		await page.goto( `/${ FIXTURES.many.slug }/` );
-		await waitForBurst( page, FIXTURES.many.slides );
-		await page.evaluate( () => ( document.activeElement as HTMLElement )?.blur() );
-
-		const order: string[] = [];
-		for ( let i = 0; i < 40 && order.length < 3; i++ ) {
-			await page.keyboard.press( 'Tab' );
-			const cls = await page.evaluate( () => document.activeElement?.className ?? '' );
-			if ( cls.includes( 'hcfd-button' ) ) {
-				order.push( cls.replace( 'hcfd-button ', '' ) );
-			}
-		}
-
-		// Making someone tab through the movement to reach what stops the
-		// movement is not providing a way to stop it.
-		expect( order[ 0 ] ).toBe( 'hcfd-button--toggle' );
-	} );
-
-	test( 'pausing works, and it never restarts on its own', async ( { page } ) => {
+	test( 'it never announces the photographs it changes', async ( { page } ) => {
 		await page.goto( `/${ FIXTURES.many.slug }/` );
 		await waitForBurst( page, FIXTURES.many.slides );
 
-		// The name is asserted as a behaviour, not as a string: the site under
-		// test may run in any language, and a suite that hard-codes English
-		// fails on a translated site while nothing is actually wrong.
-		const playing = await controlName( page, '.hcfd-button--toggle' );
-		expect( playing ).not.toBe( '' );
+		// Reading a photograph out every five seconds is hostile, not helpful --
+		// and with nothing for the visitor to press, there is no moment at which
+		// announcing one would be a reply to anything they did.
+		const announcing = await page.evaluate( () =>
+			[ ...document.querySelectorAll( '.wp-block-hcfd-carousel, .wp-block-hcfd-carousel *' ) ]
+				.map( ( el ) => el.getAttribute( 'aria-live' ) )
+				.filter( ( value ) => null !== value && 'off' !== value )
+		);
 
-		await page.locator( '.hcfd-button--toggle' ).click();
-		const paused = await controlName( page, '.hcfd-button--toggle' );
-
-		expect( paused ).not.toBe( '' );
-		expect( paused ).not.toBe( playing );
-
-		const stopped = await visibleSlide( page );
-		await page.waitForTimeout( 12_000 );
-		expect( await visibleSlide( page ) ).toBe( stopped );
-	} );
-
-	test( 'it announces nothing while it moves on its own, and politely once it does not', async ( { page } ) => {
-		await page.goto( `/${ FIXTURES.many.slug }/` );
-		await waitForBurst( page, FIXTURES.many.slides );
-
-		// Reading a photograph out every five seconds is hostile, not helpful.
-		await expect( page.locator( '.hcfd-track' ) ).toHaveAttribute( 'aria-live', 'off' );
-		await page.locator( '.hcfd-button--toggle' ).click();
-		await expect( page.locator( '.hcfd-track' ) ).toHaveAttribute( 'aria-live', 'polite' );
+		expect( announcing ).toEqual( [] );
 	} );
 
 	test( 'slides off screen are out of the tab order and out of the tree', async ( { page } ) => {
@@ -102,20 +75,35 @@ test.describe( 'accessibility', () => {
 		await expect( page.locator( '.hcfd-slide[hidden]' ).first() ).toBeHidden();
 	} );
 
-	test( 'reduced motion stops the rotation outright', async ( { browser } ) => {
-		const context = await browser.newContext( { reducedMotion: 'reduce' } );
-		const page = await context.newPage();
+	test( 'reduced motion stops it, and the same run proves it would have moved', async ( {
+		browser,
+	} ) => {
+		// Two contexts in one test, on purpose.
+		//
+		// The earlier version of this test had only the second half: it asserted
+		// that the slide did not change under reduced motion. A carousel that had
+		// stopped working satisfies that just as well, and this test stayed green
+		// through a real bug that froze the carousel on slide 1 while flashing the
+		// whole page every five seconds. The first half is what makes the second
+		// half mean anything: if the plugin is dead, the control arm fails.
+		const moving = await browser.newContext();
+		const still = await browser.newContext( { reducedMotion: 'reduce' } );
+		const pages = await Promise.all( [ moving.newPage(), still.newPage() ] );
 
-		await page.goto( `/${ FIXTURES.many.slug }/` );
-		await waitForBurst( page, FIXTURES.many.slides );
+		await Promise.all( pages.map( ( page ) => page.goto( `/${ FIXTURES.many.slug }/` ) ) );
+		await Promise.all( pages.map( ( page ) => waitForBurst( page, FIXTURES.many.slides ) ) );
 
-		const before = await visibleSlide( page );
-		await page.waitForTimeout( 12_000 );
+		const before = await Promise.all( pages.map( ( page ) => visibleSlide( page ) ) );
+		await pages[ 0 ].waitForTimeout( 11_000 );
+		const after = await Promise.all( pages.map( ( page ) => visibleSlide( page ) ) );
 
-		// No stylesheet can stop a timer, so this is checked inside the
-		// expression that drives it, on every tick.
-		expect( await visibleSlide( page ) ).toBe( before );
-		await context.close();
+		// No stylesheet can stop a timer, so this is checked inside the expression
+		// that drives the rotation, on every tick -- which also means turning the
+		// system setting on mid-visit is obeyed.
+		expect( after[ 0 ] ).not.toBe( before[ 0 ] );
+		expect( after[ 1 ] ).toBe( before[ 1 ] );
+
+		await Promise.all( [ moving.close(), still.close() ] );
 	} );
 
 	test( 'every slide is named for a screen reader', async ( { page } ) => {

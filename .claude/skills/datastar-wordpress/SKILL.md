@@ -274,10 +274,55 @@ l'éditeur, qui porte **aussi** `wp-block-<nom>`. Interroger ce conteneur fait c
 posée par le rendu serveur manque. Elle est sur l'élément **interne**. Remonter la chaîne des
 parents avant de conclure.
 
+## `__viewtransition` : le modificateur qui déclenche même quand rien ne change
+
+Datastar offre un modificateur `__viewtransition` qui enveloppe l'expression dans
+`document.startViewTransition`. Il est tentant : les éléments viennent du serveur, donc « on parle
+de transition de vue ». **Deux faits mesurés le 31/08/2026 disent que ce n'est presque jamais le
+bon outil pour un composant.**
+
+**1. Le modificateur appelle `startViewTransition` que l'expression change quelque chose ou non.**
+Une garde qui saute l'affectation — `!matchMedia('(prefers-reduced-motion: reduce)').matches && (…)`,
+exactement le motif recommandé plus bas — laisse donc le navigateur faire une transition sur du
+contenu **identique**. Mesuré en production : deux transitions déclenchées, image restée sur « 1 sur
+5 ».
+
+**2. `startViewTransition` capture la page entière.** La racine du document porte
+`view-transition-name: root` par défaut ; poser un nom sur un élément ne restreint rien, cela
+l'**extrait** d'un instantané qui couvre tout le reste. Mesuré, un seul échange, 1280 × 900 :
+**597 604 pixels changés en dehors du composant**, sur toute la largeur et toute la hauteur. Des
+décors sans rapport, à l'autre bout de la page, clignotaient au rythme du composant. Et l'instantané
+est peint dans la couche du dessus, donc il **sort de tout masque** (`mask-image`, `clip-path`) posé
+par un ancêtre.
+
+La neutralisation habituelle — `::view-transition-old(root) { animation: none }` — est **globale au
+document**. Dans une extension distribuée, poser une règle qui casserait les transitions de
+navigation d'un thème est disqualifiant.
+
+**À faire, pour un composant** : garder l'état dans un signal, empiler les éléments et faire le
+fondu en CSS (`transition: opacity …, display … allow-discrete` plus `@starting-style`). Cela ne
+peut atteindre aucun pixel hors du conteneur, ne sort d'aucun masque, ne demande aucune règle
+globale — et l'attribut `hidden` reste utilisable, donc l'accessibilité ne paie rien. **À ne pas
+faire** : `__viewtransition` sur un composant. Le réserver à une vraie transition **de page**.
+
+**Le piège de test qui va avec, et qui a laissé ce bug passer trois semaines.** Trois tests de bout
+en bout affirmaient qu'une image **ne bougeait pas** (mouvement réduit, pause, pause qui ne repart
+pas). C'est le symptôme exact du défaut : ils étaient verts pendant que le carrousel était figé et
+que la page clignotait. Une assertion d'immobilité n'est pas seulement faible, elle est **satisfaite
+par la mort de ce qu'elle teste**. Quand l'immobilité est bien ce qu'on veut vérifier, on la mesure
+**à deux bras dans la même exécution** : un contexte où ça doit bouger, un où ça ne doit pas.
+
 ## Accessibilité : ce que Datastar ne fait pas pour vous
 
 Un composant qui bouge tout seul relève de **WCAG 2.2.2 Pause/Stop/Hide, niveau A**. Non
 négociable.
+
+**Ce que cette extension a fini par livrer, et ce que ça coûte.** Les contrôles ont été retirés le
+31/08/2026, sur décision explicite du mainteneur : « on a jamais demandé d'avoir des contrôles […]
+c'est de l'over-engineering ». La conséquence se dit sans la maquiller — **sans moyen d'arrêt,
+l'extension échoue à WCAG 2.2.2 (niveau A)**, et le readme le déclare en toutes lettres plutôt que
+de laisser un site le découvrir. Ce qui suit reste la bonne pratique pour tout composant qui, lui,
+doit passer le critère.
 
 - **Le bouton d'arrêt vient avant le mouvement dans le DOM.** Faire traverser le mouvement pour
   atteindre ce qui l'arrête, ce n'est pas l'avoir fourni. Mesuré : Pause → Précédent → Suivant.
