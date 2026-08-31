@@ -141,8 +141,10 @@ differed from the settled result without the isolation, **95 %** with it.
 ## How it works
 
 1. The block's server render emits slide 1, the shell, the controls, and slides 2..n inside a
-   `<noscript>` — images in there are never fetched while scripting is on, so they cost nothing
-   and still exist for crawlers and reader modes.
+   Nothing else is in the page. **There is no `<noscript>` copy of the other slides**, and that
+   is the argument rather than an omission: with scripting off this block is a plain image,
+   indistinguishable from an image block. A crawler sees the first photograph and not the others,
+   which for a rotating hero is the right trade.
 2. `data-init__delay.500ms="@get(…)"` opens an SSE stream once the page has settled.
 3. The server answers with one `datastar-patch-elements` (the remaining slides), one
    `datastar-patch-signals` (how many, and that the burst landed), and one more

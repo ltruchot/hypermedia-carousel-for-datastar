@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.3.2
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,7 +27,8 @@ burst, and the rotation then runs in the browser.
   photograph and it appears without purging anything.
 * **Nothing breaks when something fails.** No JavaScript, a blocked request, a strict security
   policy: the visitor sees the first image, which is what a carousel shows most of the time
-  anyway. Search engines and reader modes get the full set from a `<noscript>` block.
+  anyway. With JavaScript off there is no carousel at all -- just that one image, which is exactly
+  what a plain image block would have given you.
 
 = Honest about what it is =
 
@@ -175,18 +176,15 @@ them.
 
 == Changelog ==
 
-= 0.3.2 =
-* **The cross-fade did nothing at all in Firefox.** The outgoing slide was held
-  on screen with `transition: display … allow-discrete`; Firefox 153 reports
-  that as supported and sets `display: none` on the first frame anyway, so every
-  Firefox visitor got a hard cut. A slide at rest is now
-  `display: block; visibility: hidden`, which needs no discrete transition and
-  removes it from the accessibility tree and the tab order just the same.
-* The transition is declared on the state a slide moves TO when it LEAVES, so a
-  slide still arrives instantly, under the one going out. Coverage never
-  leaves 1 and the swap still cannot flash.
-* The end-to-end suite now runs on two engines. It ran on Chromium alone for
-  three releases, which is why nothing said any of this.
+= 0.4.0 =
+* **No more `<noscript>` copy of the other slides.** With scripting off, this
+  block is now one image and nothing else — indistinguishable from a plain image
+  block, which is the whole argument of the plugin. The copy also broke the
+  layout it was meant to serve: slides are not grid items inside a `<noscript>`,
+  so they stacked vertically, a track 3 593 pixels tall where the design has one
+  box.
+* What it costs, said plainly: a crawler sees the first photograph and not the
+  others. For a rotating hero that is the right trade.
 
 Earlier releases: see the repository's history. Only the current release is kept
 here, because this file has a 10 KiB budget and a changelog grows for ever.

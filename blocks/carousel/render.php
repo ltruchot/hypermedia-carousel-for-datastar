@@ -134,21 +134,29 @@ $hcfd_init = sprintf(
 		data-signals="<?php echo esc_attr( (string) $hcfd_signals ); ?>"
 		data-init__delay.500ms="<?php echo esc_attr( $hcfd_init ); ?>"
 	>
+		<?php
+		/*
+		 * ONE image, and nothing else, until the browser asks for more.
+		 *
+		 * There is deliberately no <noscript> copy of the other slides. It was
+		 * there at first, for crawlers, and it was wrong twice over. It broke
+		 * the layout of a page without scripting -- the slides fall out of the
+		 * grid and stack vertically, 3 593 pixels of photographs where the
+		 * design has one box -- and it contradicted the whole argument of the
+		 * plugin: a page that costs what ONE image costs. Without JavaScript
+		 * this block is a plain image, indistinguishable from an image block,
+		 * and nobody is any the wiser.
+		 *
+		 * What it costs, said plainly: a crawler sees the first photograph and
+		 * not the others. For a rotating hero that is the right trade -- the
+		 * other slides are decoration, and the page they illustrate is indexed
+		 * either way.
+		 */
+		?>
 		<div class="hcfd-track">
 			<?php
 			echo Slides::render_slide( $hcfd_ids[0], $hcfd_size, 0, $hcfd_n, $hcfd_signal ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built by Slides, which escapes.
 			?>
-			<noscript>
-				<?php
-				/*
-				 * Images inside <noscript> are not fetched while scripting is
-				 * on, so this costs nothing to a normal visit. It is what a
-				 * crawler, a reader mode, and a visitor without JavaScript get
-				 * instead of six slides that exist nowhere in the page.
-				 */
-				echo Slides::render_slides( $hcfd_ids, $hcfd_size, 1 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built by Slides, which escapes.
-				?>
-			</noscript>
 		</div>
 
 		<?php

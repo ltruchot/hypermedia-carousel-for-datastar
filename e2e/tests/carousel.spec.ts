@@ -269,18 +269,29 @@ test.describe( 'the carousel', () => {
 		await expect( page.locator( '.wp-block-hcfd-carousel' ) ).toHaveCount( 0 );
 	} );
 
-	test( 'the slides that are not on screen still exist for a crawler', async ( { page } ) => {
+	test( 'without JavaScript it is one image and nothing else', async ( { browser } ) => {
+		// The promise of the plugin, stated as a test: a page costs what ONE image
+		// costs. With scripting off there is no carousel to see -- no second
+		// photograph, no stack of them falling out of the grid, nothing a visitor
+		// or a reader mode could tell from a plain image block.
+		//
+		// A <noscript> copy of the other slides used to be here. It broke this: the
+		// slides are not grid items inside a <noscript>, so they stacked vertically
+		// -- measured, a track 3 593 pixels tall where the design has one box.
+		const context = await browser.newContext( { javaScriptEnabled: false } );
+		const page = await context.newPage();
 		await page.goto( `/${ FIXTURES.many.slug }/` );
 
-		// <noscript> content is inert while scripting is on, so these images
-		// cost a visitor nothing -- and they are what a reader mode, a crawler
-		// or a visitor without JavaScript gets instead of a single photograph.
-		const inNoscript = await page.evaluate( () => {
-			const noscript = document.querySelector( '.hcfd-track noscript' );
-			return ( noscript?.textContent ?? '' ).match( /class="hcfd-slide"/g )?.length ?? 0;
-		} );
+		await expect( page.locator( '.hcfd-slide' ) ).toHaveCount( 1 );
+		await expect( page.locator( '.hcfd-track noscript' ) ).toHaveCount( 0 );
 
-		expect( inNoscript ).toBe( FIXTURES.many.slides - 1 );
+		// And the one image is a real one, with its alternative text -- not a
+		// placeholder waiting for a script that will never run.
+		const image = page.locator( '.hcfd-slide img' );
+		await expect( image ).toHaveCount( 1 );
+		expect( await image.getAttribute( 'alt' ) ).not.toBeNull();
+
+		await context.close();
 	} );
 
 	test( 'two carousels on one page do not drive each other', async ( { page } ) => {
