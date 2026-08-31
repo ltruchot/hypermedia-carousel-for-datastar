@@ -2,7 +2,12 @@
 # What follows is what the tools leave behind while they run.
 .DS_Store
 node_modules/
-vendor/
+# Anchored, and it matters: an unanchored `vendor/` also swallows
+# assets/vendor/, which is where the Datastar runtime lives. Committed
+# unanchored once, and the plugin went to GitHub without the engine it cannot
+# start without -- caught by CI, not by the local tests, which see the file on
+# disk whether git knows about it or not.
+/vendor/
 *.zip
 
 # PHPUnit

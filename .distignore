@@ -16,3 +16,9 @@
 /phpunit.xml.dist
 /phpcs.xml.dist
 /CONTRIBUTING.md
+
+# Tool leftovers. Anything ignored by git but not by this file would ship from
+# a working copy without ever appearing in a clean checkout -- which is how a
+# PHPUnit cache file ends up in somebody's wp-content.
+/.phpunit.result.cache
+/.DS_Store

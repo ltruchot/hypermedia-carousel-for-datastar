@@ -173,6 +173,44 @@ final class SecurityTest extends TestCase {
 		}
 	}
 
+	public function test_every_file_the_zip_needs_is_actually_in_the_repository(): void {
+		// The tests above ask the filesystem, which answers the same whether git
+		// knows about a file or not. That gap is not theoretical: an unanchored
+		// `vendor/` in .gitignore once swallowed assets/vendor/, and the plugin
+		// was published without the runtime it cannot start without. Everything
+		// was green locally; CI caught it on a clean checkout, one round trip
+		// later than necessary.
+		$root = (string) realpath( self::ROOT );
+
+		if ( ! is_dir( $root . '/.git' ) ) {
+			$this->markTestSkipped( 'Not a git checkout.' );
+		}
+
+		$output = array();
+		$status = 0;
+		// A test asking git what git tracks. The rule that discourages this
+		// exists for plugin code, which ships and runs on other people's
+		// servers; this file does neither -- and it is the reason the shipped
+		// code can promise it never shells out.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec
+		exec( 'git -C ' . escapeshellarg( $root ) . ' ls-files -z 2>/dev/null', $output, $status );
+
+		if ( 0 !== $status ) {
+			$this->markTestSkipped( 'git is not available here.' );
+		}
+
+		$tracked = array_filter( explode( "\0", implode( "\n", $output ) ) );
+		$this->assertNotEmpty( $tracked, 'git listed nothing: the check would be vacuous.' );
+
+		$untracked = array_values( array_diff( $this->shipped_files(), $tracked ) );
+
+		$this->assertSame(
+			array(),
+			$untracked,
+			'These would ship from a working copy and be missing from a clean checkout.'
+		);
+	}
+
 	/**
 	 * @dataProvider provide_forbidden_calls
 	 */
