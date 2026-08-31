@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coding-standards:
+    name: WordPress coding standards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: cs2pr
+      - uses: ramsey/composer-install@v3
+      # cs2pr turns the report into inline annotations, so a violation is read
+      # where it lives rather than in a log nobody opens.
+      - run: composer exec -- phpcs -q --report=checkstyle | cs2pr
+
+  unit:
+    name: Unit tests on PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 8.1 is what the plugin header promises; the rest is what people
+        # actually run. A promise nobody tests is a guess.
+        php: [ '8.1', '8.2', '8.3', '8.4' ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - run: composer exec -- phpunit
+
+  plugin-check:
+    name: Plugin Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+      # Runs the same checks the plugin directory runs on submission, against
+      # a tree built the way the ZIP is built -- .distignore included.
+      - uses: WordPress/plugin-check-action@v1
+        with:
+          build-dir: './'
+          exclude-directories: 'vendor,tests,e2e,bin'

@@ -1,5 +1,14 @@
-# Rien de construit ici : ce dépôt est la source ET ce qui est publié.
+# Nothing here is built: this repository is the source AND what gets published.
+# What follows is what the tools leave behind while they run.
 .DS_Store
 node_modules/
 vendor/
 *.zip
+
+# PHPUnit
+.phpunit.result.cache
+
+# Playwright
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/

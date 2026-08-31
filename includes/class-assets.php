@@ -30,7 +30,7 @@ final class Assets {
 	/**
 	 * Registers Datastar under our own module id.
 	 *
-	 * block.json lists this id in viewScriptModule without a "file:" prefix,
+	 * The block.json file lists this id in viewScriptModule without a "file:" prefix,
 	 * which tells WordPress to use it as-is rather than to register a file of
 	 * its own. Enqueueing then happens when a carousel really renders, and the
 	 * import map deduplicates it if a second block ever asks for it.

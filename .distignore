@@ -1,13 +1,18 @@
 # Everything here is development scaffolding and stays out of the plugin ZIP.
-.git
-.gitattributes
-.gitignore
-.github
-.claude
-.distignore
-bin
-tests
-phpcs.xml.dist
-composer.json
-composer.lock
-CONTRIBUTING.md
+# Leading slashes are deliberate: an unanchored "vendor" would also drop
+# assets/vendor/, which is where the Datastar runtime lives.
+/.git
+/.gitattributes
+/.gitignore
+/.github
+/.claude
+/.distignore
+/bin
+/tests
+/e2e
+/vendor
+/composer.json
+/composer.lock
+/phpunit.xml.dist
+/phpcs.xml.dist
+/CONTRIBUTING.md

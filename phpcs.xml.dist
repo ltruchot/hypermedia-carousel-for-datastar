@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<ruleset name="Hypermedia Carousel for Datastar">
+	<description>WordPress coding standards, as the plugin directory expects them.</description>
+
+	<file>.</file>
+
+	<!-- Third-party code, vendored verbatim apart from its namespace: read
+	     includes/datastar-php/UPSTREAM.md before touching it. Renaming its
+	     files to satisfy WordPress's naming rule would make the diff with
+	     upstream unreadable, which costs more than it buys. -->
+	<exclude-pattern>*/includes/datastar-php/*</exclude-pattern>
+	<exclude-pattern>*/assets/vendor/*</exclude-pattern>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/e2e/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg value="ps"/>
+
+	<!-- *.asset.php is the name WordPress itself gives these files; the
+	     hyphenated-lowercase rule was not written with them in mind. -->
+	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>*.asset.php</exclude-pattern>
+	</rule>
+
+	<!-- Tests are not shipped and follow PHPUnit's class-per-file naming, which
+	     the WordPress file-name rule cannot express. Everything else applies. -->
+	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+
+	<rule ref="WordPress">
+		<!-- The plugin ships no build step, so the editor script is plain ES5
+		     and is linted by eye, not by WPCS. -->
+		<exclude name="WordPress.WP.EnqueuedResourceParameters"/>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="hcfd"/>
+				<element value="HCFD"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="hypermedia-carousel-for-datastar"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Tests are held to the same standard as the rest, minus the rules that
+	     were written for application code and make no sense here. A PHPUnit
+	     method name IS its sentence; a docblock repeating it adds a line to
+	     read and nothing to know. And a test that reads a file to inspect what
+	     the ZIP would contain has no business going through WP_Filesystem. -->
+	<rule ref="Squiz.Commenting.FunctionComment">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Generic.Commenting.DocComment">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Squiz.Commenting.InlineComment">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.PHP.DevelopmentFunctions">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+
+	<config name="minimum_wp_version" value="6.5"/>
+	<config name="testVersion" value="8.1-"/>
+	<rule ref="PHPCompatibilityWP"/>
+</ruleset>

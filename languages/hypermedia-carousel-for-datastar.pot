@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-31T07:57:58+00:00\n"
+"POT-Creation-Date: 2026-08-31T09:20:20+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: hypermedia-carousel-for-datastar\n"
@@ -70,42 +70,42 @@ msgid "Hypermedia Carousel for Datastar requires PHP %1$s and WordPress %2$s or 
 msgstr ""
 
 #. translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds.
-#: includes/class-hcfd-settings.php:79
+#: includes/class-settings.php:79
 #, php-format
 msgid "The rotation interval must be between %1$d and %2$d seconds. Your value was adjusted."
 msgstr ""
 
-#: includes/class-hcfd-settings.php:112
-#: includes/class-hcfd-settings.php:113
+#: includes/class-settings.php:129
+#: includes/class-settings.php:130
 #: blocks/carousel/index.js:111
 msgid "Hypermedia Carousel"
 msgstr ""
 
-#: includes/class-hcfd-settings.php:138
+#: includes/class-settings.php:155
 msgid "Pick the images inside the Hypermedia Carousel block. This page holds the one setting shared by every carousel on the site."
 msgstr ""
 
-#: includes/class-hcfd-settings.php:147
+#: includes/class-settings.php:164
 msgid "Seconds per slide"
 msgstr ""
 
 #. translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds.
-#: includes/class-hcfd-settings.php:167
+#: includes/class-settings.php:184
 #, php-format
 msgid "Between %1$d and %2$d. A carousel of a single image never rotates, whatever this says."
 msgstr ""
 
-#: includes/class-hcfd-slides.php:194
+#: includes/class-slides.php:194
 msgid "slide"
 msgstr ""
 
 #. translators: 1: slide number, 2: total number of slides.
-#: includes/class-hcfd-slides.php:198
+#: includes/class-slides.php:198
 #, php-format
 msgid "%1$d of %2$d"
 msgstr ""
 
-#: includes/class-hcfd-sse-endpoint.php:119
+#: includes/class-sse-endpoint.php:120
 msgid "This carousel request was not issued by this site."
 msgstr ""
 

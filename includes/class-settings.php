@@ -67,10 +67,10 @@ final class Settings {
 	 * @return array<string, int> Sanitised settings.
 	 */
 	public static function sanitize( $input ): array {
-		$raw      = is_array( $input ) && isset( $input['interval'] ) ? $input['interval'] : self::DEFAULTS['interval'];
-		$interval = absint( $raw );
+		$raw      = is_array( $input ) && isset( $input['interval'] ) ? $input['interval'] : null;
+		$interval = self::to_interval( $raw );
 
-		if ( $interval < self::MIN_INTERVAL || $interval > self::MAX_INTERVAL ) {
+		if ( is_numeric( $raw ) && ( (int) $raw < self::MIN_INTERVAL || (int) $raw > self::MAX_INTERVAL ) ) {
 			add_settings_error(
 				self::OPTION,
 				'hcfd_interval_range',
@@ -82,10 +82,28 @@ final class Settings {
 				),
 				'warning'
 			);
-			$interval = max( self::MIN_INTERVAL, min( self::MAX_INTERVAL, $interval ) );
 		}
 
 		return array( 'interval' => $interval );
+	}
+
+	/**
+	 * Turns whatever was submitted or stored into a usable number of seconds.
+	 *
+	 * Deliberately NOT absint(): it mirrors a negative instead of refusing it,
+	 * so someone posting -10 would silently get a ten-second carousel. A value
+	 * that is not a number at all falls back to the shipped default rather than
+	 * to the floor, because the floor is a boundary, not a preference.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return int Seconds, within range.
+	 */
+	private static function to_interval( $value ): int {
+		if ( ! is_numeric( $value ) ) {
+			return self::DEFAULTS['interval'];
+		}
+
+		return max( self::MIN_INTERVAL, min( self::MAX_INTERVAL, (int) $value ) );
 	}
 
 	/**
@@ -95,10 +113,9 @@ final class Settings {
 	 * written by an older version, or by hand, can hold anything at all.
 	 */
 	public static function interval(): int {
-		$stored   = wp_parse_args( (array) get_option( self::OPTION, array() ), self::DEFAULTS );
-		$interval = absint( $stored['interval'] );
+		$stored = wp_parse_args( (array) get_option( self::OPTION, array() ), self::DEFAULTS );
 
-		return max( self::MIN_INTERVAL, min( self::MAX_INTERVAL, $interval ) );
+		return self::to_interval( $stored['interval'] );
 	}
 
 	/**

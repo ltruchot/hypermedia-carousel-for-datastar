@@ -27,8 +27,8 @@ purge or no purge.
 | Path | What it is |
 |---|---|
 | `hypermedia-carousel-for-datastar.php` | Header, version guard, constants. Must parse on ancient PHP — see the comment at the top. |
-| `includes/class-hcfd-slides.php` | Ids to HTML, attachment filtering, HMAC token. Shared by the block and the endpoint so they cannot drift. |
-| `includes/class-hcfd-sse-endpoint.php` | The REST route and the takeover of its output. |
+| `includes/class-slides.php` | Ids to HTML, attachment filtering, HMAC token. Shared by the block and the endpoint so they cannot drift. |
+| `includes/class-sse-endpoint.php` | The REST route and the takeover of its output. |
 | `blocks/carousel/` | `block.json`, the server render, the editor script, the styles. |
 | `includes/datastar-php/` | The Datastar PHP SDK, namespace-prefixed. See its `UPSTREAM.md`. |
 | `assets/vendor/datastar/` | The Datastar browser runtime, verbatim. See its `UPSTREAM.md`. |

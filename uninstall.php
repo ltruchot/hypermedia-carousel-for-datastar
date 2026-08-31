@@ -23,7 +23,14 @@ if ( is_multisite() ) {
 	 * uninstall.
 	 */
 	if ( ! wp_is_large_network() ) {
-		foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $hcfd_site_id ) {
+		$hcfd_sites = get_sites(
+			array(
+				'fields' => 'ids',
+				'number' => 0,
+			)
+		);
+
+		foreach ( $hcfd_sites as $hcfd_site_id ) {
 			switch_to_blog( $hcfd_site_id );
 			delete_option( HCFD_UNINSTALL_OPTION );
 			restore_current_blog();

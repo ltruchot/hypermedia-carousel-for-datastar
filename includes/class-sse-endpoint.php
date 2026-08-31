@@ -67,6 +67,7 @@ final class Sse_Endpoint {
 					'target' => array(
 						'type'              => 'string',
 						'required'          => true,
+
 						/*
 						 * This regex is a security boundary, not tidiness: the
 						 * value is interpolated into the CSS selector of a
@@ -137,7 +138,7 @@ final class Sse_Endpoint {
 	public static function dispatch( WP_REST_Request $request ) {
 		add_filter(
 			'rest_pre_serve_request',
-			static function ( $served ) use ( $request ) {
+			static function ( $served ) use ( $request ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- the filter's signature is WordPress's, and we always take over.
 				self::emit( $request );
 
 				// True tells WP_REST_Server the response has been sent. It then
@@ -160,6 +161,8 @@ final class Sse_Endpoint {
 		self::clear_the_way();
 
 		require_once HCFD_PATH . 'includes/datastar-php/loader.php';
+
+		self::close_to_other_origins();
 
 		$sse = new Datastar\ServerSentEventGenerator();
 		$sse->sendHeaders();
@@ -250,6 +253,39 @@ final class Sse_Endpoint {
 	}
 
 	/**
+	 * Refuses to let another origin read this response.
+	 *
+	 * WordPress answers every REST request with the caller's own origin in
+	 * `Access-Control-Allow-Origin`, plus `Access-Control-Allow-Credentials:
+	 * true`. That is its documented default and it is not this plugin's place
+	 * to change it for other routes -- but this route is only ever called by
+	 * the page it was rendered into, so cross-origin reads have nothing to
+	 * serve and no reason to be allowed.
+	 *
+	 * Nothing confidential would leak either way: the burst is the same markup
+	 * for every visitor, and it takes a signature this site issued to get it at
+	 * all. This narrows the channel to exactly what it is for, which is cheaper
+	 * than arguing about whether it matters.
+	 *
+	 * `header_remove()` and not a filter: `rest_send_cors_headers` has already
+	 * run by the time `rest_pre_serve_request` fires, and filtering it would
+	 * change the answer for every other route on the site.
+	 */
+	private static function close_to_other_origins(): void {
+		foreach (
+			array(
+				'Access-Control-Allow-Origin',
+				'Access-Control-Allow-Credentials',
+				'Access-Control-Allow-Methods',
+				'Access-Control-Allow-Headers',
+				'Access-Control-Expose-Headers',
+			) as $header
+		) {
+			header_remove( $header );
+		}
+	}
+
+	/**
 	 * Makes sure nothing but the burst can reach the socket.
 	 *
 	 * A single stray byte -- a deprecation notice from another plugin, a BOM at
@@ -266,14 +302,19 @@ final class Sse_Endpoint {
 		 * text/event-stream body. Nothing is turned back on afterwards because
 		 * the request ends here.
 		 */
-		// phpcs:disable WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged, PluginCheck.CodeAnalysis.PHPErrorReporting, WordPress.PHP.NoSilencedErrors.Discouraged
+		// phpcs:disable WordPress.PHP.IniSet, Squiz.PHP.DiscouragedFunctions.Discouraged, PluginCheck.CodeAnalysis.PHPErrorReporting, WordPress.PHP.NoSilencedErrors.Discouraged
 		@ini_set( 'display_errors', '0' );
 		@ini_set( 'html_errors', '0' );
 		@ini_set( 'zlib.output_compression', '0' );
-		// phpcs:enable WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged, PluginCheck.CodeAnalysis.PHPErrorReporting, WordPress.PHP.NoSilencedErrors.Discouraged
+		// phpcs:enable WordPress.PHP.IniSet, Squiz.PHP.DiscouragedFunctions.Discouraged, PluginCheck.CodeAnalysis.PHPErrorReporting, WordPress.PHP.NoSilencedErrors.Discouraged
 
 		if ( function_exists( 'apache_setenv' ) ) {
-			@apache_setenv( 'no-gzip', '1' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			// Apache's own lever for the same job X-Accel-Buffering does on
+			// nginx: mod_deflate would otherwise buffer the stream and hold
+			// every event until the response ends, which for a stream means
+			// forever.
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_apache_setenv
+			@apache_setenv( 'no-gzip', '1' );
 		}
 
 		/*

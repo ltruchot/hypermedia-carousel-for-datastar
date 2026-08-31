@@ -48,6 +48,6 @@ patched, because patching vendored code is how a fork starts:
 ## Refreshing
 
 Run `bin/vendor-datastar.sh` from the repository root, then read the diff.
-Two upstream defects are worked around in `includes/class-hcfd-sse-endpoint.php`
+Two upstream defects are worked around in `includes/class-sse-endpoint.php`
 rather than patched here — see the comments there before assuming a new release
 fixed them.

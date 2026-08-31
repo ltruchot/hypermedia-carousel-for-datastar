@@ -14,7 +14,11 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Block {
 
-	/** How many carousels have been rendered so far in this request. */
+	/**
+	 * How many carousels have been rendered so far in this request.
+	 *
+	 * @var int
+	 */
 	private static int $instances = 0;
 
 	/**
@@ -35,6 +39,21 @@ final class Block {
 	 */
 	public static function register(): void {
 		register_block_type_from_metadata( HCFD_PATH . 'blocks/carousel' );
+
+		/*
+		 * The editor script calls wp.i18n; without this its strings stay in
+		 * English however well the plugin is translated. The handle is the one
+		 * generate_block_asset_handle() builds from block.json: the block name
+		 * with its slash turned into a dash, plus the field.
+		 *
+		 * No path argument: for a plugin hosted on WordPress.org the JSON comes
+		 * from the language pack directory, and naming a directory here would
+		 * only describe where it is not.
+		 */
+		wp_set_script_translations(
+			'hcfd-carousel-editor-script',
+			'hypermedia-carousel-for-datastar'
+		);
 	}
 
 	/**
