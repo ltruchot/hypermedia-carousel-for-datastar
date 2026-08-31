@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -140,6 +140,11 @@ and every change made to it. `bin/vendor-datastar.sh` in the source repository i
 them.
 
 == Changelog ==
+
+= 0.1.2 =
+* A Settings link now appears under the plugin on the plugins screen, as it does
+  for every other plugin. Without it the settings page existed and nothing
+  pointed at it.
 
 = 0.1.1 =
 * The block now ships only the cross-fade and the reduced-motion guarantee. All

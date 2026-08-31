@@ -20,6 +20,9 @@ final class Settings {
 	/** Settings group, used by register_setting() and settings_fields(). */
 	private const GROUP = 'hcfd';
 
+	/** Slug of the settings page, under Settings. */
+	private const PAGE = 'hcfd';
+
 	/** Shortest interval a human can follow, in seconds. */
 	public const MIN_INTERVAL = 3;
 
@@ -58,6 +61,35 @@ final class Settings {
 	public static function init(): void {
 		add_action( 'init', array( __CLASS__, 'register' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'add_page' ) );
+
+		// The "Settings" link every other plugin shows under its own row on the
+		// plugins screen. WordPress does not infer it: without this filter the
+		// page exists but nothing on that screen points at it, and the only way
+		// to find it is to already know where it is.
+		add_filter(
+			'plugin_action_links_' . plugin_basename( HCFD_FILE ),
+			array( __CLASS__, 'add_settings_link' )
+		);
+	}
+
+	/**
+	 * Puts a Settings link at the front of the plugin's row actions.
+	 *
+	 * @param array<int|string, string> $links Links already there.
+	 * @return array<int|string, string> Links, with ours first.
+	 */
+	public static function add_settings_link( $links ): array {
+		$link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( admin_url( 'options-general.php?page=' . self::PAGE ) ),
+			esc_html__( 'Settings', 'hypermedia-carousel-for-datastar' )
+		);
+
+		// Prepended, not appended: "Settings" belongs before "Deactivate", which
+		// is where every core and well-behaved plugin puts it.
+		array_unshift( $links, $link );
+
+		return $links;
 	}
 
 	/**
@@ -176,7 +208,7 @@ final class Settings {
 			__( 'Hypermedia Carousel', 'hypermedia-carousel-for-datastar' ),
 			__( 'Hypermedia Carousel', 'hypermedia-carousel-for-datastar' ),
 			'manage_options',
-			'hcfd',
+			self::PAGE,
 			array( __CLASS__, 'render_page' )
 		);
 	}

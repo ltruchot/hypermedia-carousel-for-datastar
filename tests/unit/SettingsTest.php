@@ -158,6 +158,37 @@ final class SettingsTest extends TestCase {
 		$this->assertSame( array( 'fade', 'none' ), Settings::TRANSITIONS );
 	}
 
+	public function test_the_plugins_screen_points_at_the_settings_page(): void {
+		// Without this the page exists and nothing links to it: the only way to
+		// reach it is to already know it is there. Every other plugin on the
+		// screen shows the link, so its absence reads as "this one has no
+		// settings".
+		Functions\when( 'admin_url' )->alias( static fn( $p ) => 'https://example.test/wp-admin/' . $p );
+		Functions\when( 'esc_url' )->returnArg( 1 );
+		Functions\when( 'esc_html__' )->returnArg( 1 );
+
+		$links = Settings::add_settings_link( array( 'deactivate' => '<a href="#">Deactivate</a>' ) );
+
+		$this->assertCount( 2, $links );
+
+		// First, not last: that is where core and well-behaved plugins put it,
+		// and where a hand goes looking.
+		$this->assertStringContainsString( 'options-general.php?page=hcfd', $links[0] );
+		$this->assertStringContainsString( '<a href=', $links[0] );
+
+		// And nothing already there was dropped on the way.
+		$this->assertContains( '<a href="#">Deactivate</a>', $links );
+	}
+
+	public function test_the_settings_link_survives_a_plugin_that_hands_it_nothing(): void {
+		Functions\when( 'admin_url' )->alias( static fn( $p ) => '/wp-admin/' . $p );
+		Functions\when( 'esc_url' )->returnArg( 1 );
+		Functions\when( 'esc_html__' )->returnArg( 1 );
+
+		// Another plugin filtering this list can hand over anything at all.
+		$this->assertCount( 1, Settings::add_settings_link( array() ) );
+	}
+
 	public function test_the_bounds_are_the_ones_the_form_advertises(): void {
 		// The number input carries min and max; server-side clamping has to
 		// agree with them, or the field promises something the server refuses.
