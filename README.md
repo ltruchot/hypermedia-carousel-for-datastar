@@ -6,6 +6,21 @@ Server-Sent Events burst, so a carousel costs what a single image costs.
 User-facing documentation lives in [`readme.txt`](readme.txt), which is what wordpress.org
 publishes. This file is for people reading the source.
 
+## Running the tests
+
+```bash
+cd e2e
+BASE_URL=http://localhost:8210 npm test        # Chromium and Firefox
+BASE_URL=http://localhost:8210 npm run test:all # the same, plus WebKit
+```
+
+`test:all` runs inside the official Playwright image. WebKit installs like any other browser but
+needs three system libraries the other two do not (`libicu74`, `libxml2`, `libflite1`), and putting
+those on a machine takes root — the image carries them, so nothing has to be installed and nothing
+on the machine changes. Keep its tag in `e2e/package.json` in step with the Playwright version.
+
+Measured on all three: 78 end-to-end tests. Plus 145 unit tests, `composer run php:lint:errors`.
+
 ## Written by an agent
 
 **This plugin was coded end to end by Claude Opus 5, agentically** — design,

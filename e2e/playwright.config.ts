@@ -30,33 +30,29 @@ export default defineConfig( {
 		trace: 'retain-on-failure',
 	},
 	/*
-	 * Two engines, not one.
+	 * Three engines, and only two of them start here.
 	 *
 	 * The plugin says it targets evergreen browsers and was measured on Chromium
 	 * alone for three releases. That is how a cross-fade shipped that Firefox
 	 * turned into a hard cut: `transition-behavior: allow-discrete` on `display`
-	 * is reported as supported there and does not defer the change. Nothing in
-	 * a single-engine suite could have said so.
+	 * is reported as supported there and does not defer the change. Nothing in a
+	 * single-engine suite could have said so.
 	 *
-	 * WebKit is a third, and it is NOT here — deliberately, and not because it
-	 * does not matter. Its binary downloads fine; launching it on this machine
-	 * needs three system libraries (libicu74, libxml2, libflite1) that only
-	 * `sudo` can install. Adding a project that cannot start would turn every
-	 * run red, and making it skip itself when unavailable would be worse: a
-	 * silent skip reads exactly like a pass.
+	 * WEBKIT IS DECLARED AND WILL NOT LAUNCH ON EVERY MACHINE, which is worth
+	 * understanding before assuming it is missing. Its binary installs like the
+	 * others -- 293 MB sitting next to them. What it needs and they do not is
+	 * three SYSTEM libraries (libicu74, libxml2, libflite1), and putting those
+	 * on a machine takes root. Nothing about Playwright can work around that.
 	 *
-	 * So it is left out and said out loud. To add it, once
-	 * `sudo npx playwright install-deps` has run:
-	 *
-	 *     { name: 'webkit', use: { ...devices[ 'Desktop Safari' ] } },
-	 *
-	 * What stands in for it today is a MANUAL check: Loïc opened the site in
-	 * Safari on 01/09/2026 and reported the cross-fade correct. That is a real
-	 * measurement and it is why the `visibility` mechanism is trusted there —
-	 * but it was made by a person, once, and this file cannot replay it.
+	 * So `npm test` runs the two that start natively, and `npm run test:all`
+	 * runs all three inside the official Playwright image, which carries the
+	 * libraries. No root, no change to the machine. Keep the image tag in
+	 * package.json in step with the Playwright version above it, or the browsers
+	 * in the image will not be the ones this config expects.
 	 */
 	projects: [
 		{ name: 'desktop', use: { ...devices[ 'Desktop Chrome' ] } },
 		{ name: 'firefox', use: { ...devices[ 'Desktop Firefox' ] } },
+		{ name: 'webkit', use: { ...devices[ 'Desktop Safari' ] } },
 	],
 } );
