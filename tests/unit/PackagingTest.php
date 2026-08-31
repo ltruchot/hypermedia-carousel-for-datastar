@@ -136,6 +136,37 @@ final class PackagingTest extends TestCase {
 		}
 	}
 
+	public function test_the_editor_translations_are_shipped_as_json(): void {
+		// Un `.mo` traduit le PHP et RIEN d'autre. Les chaines de l'editeur
+		// passent par un fichier `<domaine>-<locale>-<md5>.json`, produit par
+		// `wp i18n make-json` -- sans lui, l'editeur reste en anglais quelle que
+		// soit la qualite de la traduction. Constate le 31/08/2026 : tout le
+		// panneau lateral en anglais alors que le `.po` etait complet.
+		$json = glob( dirname( __DIR__, 2 ) . '/languages/hypermedia-carousel-for-datastar-fr_FR-*.json' );
+
+		$this->assertNotEmpty( $json, 'Aucun fichier de traduction JavaScript livre.' );
+
+		$strings = json_decode( (string) file_get_contents( $json[0] ), true );
+		$this->assertIsArray( $strings );
+
+		// Il doit traduire ce que l'editeur affiche, pas seulement exister.
+		$messages = $strings['locale_data']['messages'] ?? array();
+		$this->assertArrayHasKey( 'Add or remove images', $messages );
+		$this->assertNotSame( 'Add or remove images', $messages['Add or remove images'][0] );
+	}
+
+	public function test_the_editor_translations_are_wired_to_the_plugin_directory(): void {
+		// `wp_set_script_translations()` sans chemin ne regarde que
+		// `WP_LANG_DIR/plugins/` : la traduction que cette extension LIVRE n'est
+		// alors jamais lue. C'est exactement ce qui s'est passe.
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-block.php' );
+
+		$this->assertMatchesRegularExpression(
+			'/wp_set_script_translations\([^;]*HCFD_PATH \. \x27languages\x27/s',
+			$source
+		);
+	}
+
 	public function test_the_readme_stays_within_what_the_directory_accepts(): void {
 		$readme = (string) file_get_contents( self::ROOT . '/readme.txt' );
 

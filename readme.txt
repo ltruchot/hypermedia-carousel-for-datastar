@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,6 +29,22 @@ burst, and the rotation then runs in the browser.
   policy: the visitor sees the first image, which is what a carousel shows most of the time
   anyway. With JavaScript off there is no carousel at all -- just that one image, which is exactly
   what a plain image block would have given you.
+
+= How you use it =
+
+1. Add the **Hypermedia Carousel** block to a page.
+2. Pick your photographs in the Media Library, the way you would for a Gallery. The order you
+   choose is the order they rotate in.
+3. That is it. There is no third step.
+
+To change the pictures later, select the block and press **Images** in its toolbar — add one,
+remove one, reorder them. **Nothing is copied into the page**: the block stores the media IDs and
+fetches from the Media Library each time, so replacing a photograph in the library replaces it in
+every carousel that uses it, with nothing to re-save.
+
+Two settings, under **Settings → Hypermedia Carousel**, shared by every carousel on the site: how
+long each image stays on screen, and how long the cross-fade takes. There is nothing to configure
+per carousel except the images themselves and, if you like, the name a screen reader reads out.
 
 = Honest about what it is =
 
@@ -104,13 +120,10 @@ What it does do:
 
 = Where do I set the speed? =
 
-Settings → Hypermedia Carousel. Two numbers, for the whole site: how long each image stays on
-screen (2.5 to 25 seconds, by halves) and how long the cross-fade takes (100 to 2000 ms). Everything
-else lives in the block: choose the images the way you would in a Gallery block.
-
-A page already held in a cache keeps the cross-fade length it was rendered with, so clear your
-cache after changing it. The interval does not have that problem — it travels in the stream, which
-is never cached.
+Settings → Hypermedia Carousel. Two numbers for the whole site: how long each image stays on
+screen (2.5 to 25 seconds, by halves) and how long the cross-fade takes (100 to 2000 ms). A page
+already in a cache keeps the cross-fade length it was rendered with; the interval travels in the
+stream, which is never cached.
 
 = Does it work with a strict Content-Security-Policy? =
 
@@ -176,15 +189,20 @@ them.
 
 == Changelog ==
 
-= 0.4.0 =
-* **No more `<noscript>` copy of the other slides.** With scripting off, this
-  block is now one image and nothing else — indistinguishable from a plain image
-  block, which is the whole argument of the plugin. The copy also broke the
-  layout it was meant to serve: slides are not grid items inside a `<noscript>`,
-  so they stacked vertically, a track 3 593 pixels tall where the design has one
-  box.
-* What it costs, said plainly: a crawler sees the first photograph and not the
-  others. For a rotating hero that is the right trade.
+= 0.5.0 =
+* **Images are one press away.** The block toolbar carries an **Images** button
+  showing how many the carousel holds. It used to be in the sidebar only, where
+  an author had no reason to look.
+* **The plugin says what went wrong, in the console.** A carousel that never
+  received its slides names its stream URL and what produces exactly that. Two
+  Datastar runtimes on one page are reported too.
+* New `hcfd_datastar_src` filter: a site already running Datastar can point this
+  plugin at that copy instead of loading a second one.
+* **The French translation now reaches the editor.** It never had:
+  `wp_set_script_translations()` was called without a path, so WordPress ignored
+  the translation this plugin ships and the whole sidebar stayed in English. The
+  JSON file the editor actually reads is shipped too.
+* The readme now explains how to use the block, which it did not.
 
 Earlier releases: see the repository's history. Only the current release is kept
 here, because this file has a 10 KiB budget and a changelog grows for ever.

@@ -2,7 +2,7 @@
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 3,
 	"name": "hcfd/carousel",
-	"version": "0.4.0",
+	"version": "0.5.0",
 	"title": "Hypermedia Carousel",
 	"category": "media",
 	"icon": "images-alt2",
@@ -35,6 +35,6 @@
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./editor.css",
 	"style": "file:./style.css",
-	"viewScriptModule": "hcfd-datastar",
+	"viewScriptModule": [ "hcfd-datastar", "file:./view.js" ],
 	"render": "file:./render.php"
 }

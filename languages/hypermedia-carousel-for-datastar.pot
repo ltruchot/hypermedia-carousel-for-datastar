@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Hypermedia Carousel for Datastar 0.3.0\n"
+"Project-Id-Version: Hypermedia Carousel for Datastar 0.5.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/hypermedia-carousel-for-datastar\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-31T20:01:54+00:00\n"
+"POT-Creation-Date: 2026-08-31T21:13:52+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: hypermedia-carousel-for-datastar\n"
@@ -71,7 +71,7 @@ msgstr ""
 
 #: includes/class-settings.php:287
 #: includes/class-settings.php:288
-#: blocks/carousel/index.js:111
+#: blocks/carousel/index.js:167
 msgid "Hypermedia Carousel"
 msgstr ""
 
@@ -157,35 +157,46 @@ msgstr ""
 msgid "Full size"
 msgstr ""
 
-#: blocks/carousel/index.js:44
+#: blocks/carousel/index.js:83
+#, js-format
+msgid "Images (%d)"
+msgid_plural "Images (%d)"
+msgstr[0] ""
+msgstr[1] ""
+
+#: blocks/carousel/index.js:112
 msgid "Carousel"
 msgstr ""
 
-#: blocks/carousel/index.js:46
+#: blocks/carousel/index.js:114
 msgid "Image size"
 msgstr ""
 
-#: blocks/carousel/index.js:55
+#: blocks/carousel/index.js:123
 msgid "Accessible name"
 msgstr ""
 
-#: blocks/carousel/index.js:56
+#: blocks/carousel/index.js:124
 msgid "Announced to screen readers, for example “Life at the school”. Leave empty for a generic name."
 msgstr ""
 
-#: blocks/carousel/index.js:83
-msgid "Edit images"
+#: blocks/carousel/index.js:136
+msgid "Add or remove images"
 msgstr ""
 
-#: blocks/carousel/index.js:84
+#: blocks/carousel/index.js:137
 msgid "Add images"
 msgstr ""
 
-#: blocks/carousel/index.js:92
+#: blocks/carousel/index.js:143
+msgid "Pick them in the Media Library, the way you would for a Gallery. The order you choose is the order they rotate in."
+msgstr ""
+
+#: blocks/carousel/index.js:148
 msgid "The seconds each slide stays on screen are set once for the whole site, under Settings → Hypermedia Carousel."
 msgstr ""
 
-#: blocks/carousel/index.js:112
+#: blocks/carousel/index.js:168
 msgid "Pick the images this carousel rotates through. One image never rotates; two or more start the loop."
 msgstr ""
 

@@ -27,6 +27,74 @@
 	];
 
 	/**
+	 * The image picker, wherever it is shown.
+	 *
+	 * One function, two placements: the block toolbar and the sidebar. An author
+	 * who wants to add a photograph looks at the block, not at the settings
+	 * panel -- which is where the Gallery block puts its own button, and where
+	 * this one was missing until 0.4.0.
+	 *
+	 * @param {Object}   props        Block props.
+	 * @param {Function} renderButton Given `open`, returns the control to draw.
+	 * @return {Object} Element.
+	 */
+	function ImagePicker( props, renderButton ) {
+		return el(
+			blockEditor.MediaUploadCheck,
+			null,
+			el( blockEditor.MediaUpload, {
+				multiple: 'add',
+				gallery: true,
+				allowedTypes: [ 'image' ],
+				value: props.attributes.ids,
+				onSelect: function ( media ) {
+					props.setAttributes( {
+						ids: media.map( function ( item ) {
+							return item.id;
+						} )
+					} );
+				},
+				render: function ( picker ) {
+					return renderButton( picker.open );
+				}
+			} )
+		);
+	}
+
+	/**
+	 * Toolbar shown on the block itself.
+	 *
+	 * @param {Object} props Block props.
+	 * @return {Object} Element.
+	 */
+	function Toolbar( props ) {
+		return el(
+			blockEditor.BlockControls,
+			{ group: 'other' },
+			el(
+				components.ToolbarGroup,
+				null,
+				ImagePicker( props, function ( open ) {
+					return el(
+						components.ToolbarButton,
+						{ onClick: open },
+						/* translators: button on the block toolbar; %d is how many images the carousel holds. */
+						wp.i18n.sprintf(
+							wp.i18n._n(
+								'Images (%d)',
+								'Images (%d)',
+								props.attributes.ids.length,
+								'hypermedia-carousel-for-datastar'
+							),
+							props.attributes.ids.length
+						)
+					);
+				} )
+			)
+		);
+	}
+
+	/**
 	 * Panel shown in the sidebar whatever the state of the block.
 	 *
 	 * @param {Object} props Block props.
@@ -60,31 +128,19 @@
 						setAttributes( { ariaLabel: value } );
 					}
 				} ),
+				ImagePicker( props, function ( open ) {
+					return el(
+						components.Button,
+						{ variant: 'secondary', onClick: open },
+						attributes.ids.length
+							? __( 'Add or remove images', 'hypermedia-carousel-for-datastar' )
+							: __( 'Add images', 'hypermedia-carousel-for-datastar' )
+					);
+				} ),
 				el(
-					blockEditor.MediaUploadCheck,
-					null,
-					el( blockEditor.MediaUpload, {
-						multiple: 'add',
-						gallery: true,
-						allowedTypes: [ 'image' ],
-						value: attributes.ids,
-						onSelect: function ( media ) {
-							setAttributes( {
-								ids: media.map( function ( item ) {
-									return item.id;
-								} )
-							} );
-						},
-						render: function ( open ) {
-							return el(
-								components.Button,
-								{ variant: 'secondary', onClick: open.open },
-								attributes.ids.length
-									? __( 'Edit images', 'hypermedia-carousel-for-datastar' )
-									: __( 'Add images', 'hypermedia-carousel-for-datastar' )
-							);
-						}
-					} )
+					'p',
+					{ style: { marginTop: '0.5em' } },
+					__( 'Pick them in the Media Library, the way you would for a Gallery. The order you choose is the order they rotate in.', 'hypermedia-carousel-for-datastar' )
 				),
 				el(
 					'p',
@@ -126,6 +182,7 @@
 			return el(
 				Fragment,
 				null,
+				attributes.ids.length ? el( Toolbar, props ) : null,
 				el( Sidebar, props ),
 				el( 'div', blockProps, body )
 			);

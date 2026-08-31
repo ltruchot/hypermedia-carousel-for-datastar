@@ -40,9 +40,36 @@ final class Assets {
 	 * third-party CDNs.
 	 */
 	public static function register(): void {
+		/**
+		 * Filters where the Datastar runtime is loaded from.
+		 *
+		 * This exists for one situation, and it is a real one: a site already
+		 * running Datastar for something else. WordPress deduplicates script
+		 * modules by ID, and another plugin registers its own -- so both files
+		 * load, and two copies of one library react to the same attributes.
+		 * Nothing on the server can tell they are the same library.
+		 *
+		 * Pointing this filter at the copy the site already loads consolidates
+		 * them. The version must match what this plugin expects, which is why
+		 * it is passed along: an older Datastar will not understand the
+		 * attributes this block writes, and a newer one is untested here.
+		 *
+		 * The front end says so too when it sees two of them -- see view.js.
+		 *
+		 * @since 0.4.0
+		 *
+		 * @param string $src     Absolute URL of the bundled runtime.
+		 * @param string $version Version this plugin was written against.
+		 */
+		$src = apply_filters(
+			'hcfd_datastar_src',
+			HCFD_URL . 'assets/vendor/datastar/datastar-' . self::DATASTAR_VERSION . '.js',
+			self::DATASTAR_VERSION
+		);
+
 		wp_register_script_module(
 			self::MODULE,
-			HCFD_URL . 'assets/vendor/datastar/datastar-' . self::DATASTAR_VERSION . '.js',
+			$src,
 			array(),
 			self::DATASTAR_VERSION
 		);

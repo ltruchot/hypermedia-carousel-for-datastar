@@ -75,7 +75,7 @@ msgstr "Le fondu doit durer entre %1$d et %2$d millisecondes. Votre valeur a ét
 
 #: includes/class-settings.php:287
 #: includes/class-settings.php:288
-#: blocks/carousel/index.js:111
+#: blocks/carousel/index.js:167
 msgid "Hypermedia Carousel"
 msgstr "Diaporama ultraléger"
 
@@ -161,35 +161,46 @@ msgstr "Grande"
 msgid "Full size"
 msgstr "Taille originale"
 
-#: blocks/carousel/index.js:44
+#: blocks/carousel/index.js:83
+#, js-format
+msgid "Images (%d)"
+msgid_plural "Images (%d)"
+msgstr[0] "Images (%d)"
+msgstr[1] "Images (%d)"
+
+#: blocks/carousel/index.js:112
 msgid "Carousel"
 msgstr "Diaporama"
 
-#: blocks/carousel/index.js:46
+#: blocks/carousel/index.js:114
 msgid "Image size"
 msgstr "Taille des images"
 
-#: blocks/carousel/index.js:55
+#: blocks/carousel/index.js:123
 msgid "Accessible name"
 msgstr "Nom accessible"
 
-#: blocks/carousel/index.js:56
+#: blocks/carousel/index.js:124
 msgid "Announced to screen readers, for example “Life at the school”. Leave empty for a generic name."
 msgstr "Annoncé aux lecteurs d’écran, par exemple « La vie à l’école ». Laisser vide pour un nom générique."
 
-#: blocks/carousel/index.js:83
-msgid "Edit images"
-msgstr "Modifier les images"
+#: blocks/carousel/index.js:136
+msgid "Add or remove images"
+msgstr "Ajouter ou retirer des images"
 
-#: blocks/carousel/index.js:84
+#: blocks/carousel/index.js:137
 msgid "Add images"
 msgstr "Ajouter des images"
 
-#: blocks/carousel/index.js:92
+#: blocks/carousel/index.js:143
+msgid "Pick them in the Media Library, the way you would for a Gallery. The order you choose is the order they rotate in."
+msgstr "Choisissez-les dans la médiathèque, comme pour une galerie. L’ordre que vous leur donnez est l’ordre de rotation."
+
+#: blocks/carousel/index.js:148
 msgid "The seconds each slide stays on screen are set once for the whole site, under Settings → Hypermedia Carousel."
 msgstr "Le temps d’affichage de chaque image se règle une fois pour tout le site, dans Réglages → Diaporama ultraléger."
 
-#: blocks/carousel/index.js:112
+#: blocks/carousel/index.js:168
 msgid "Pick the images this carousel rotates through. One image never rotates; two or more start the loop."
 msgstr "Choisissez les images que ce diaporama fera défiler. Une seule image ne tourne jamais ; deux ou plus lancent la boucle."
 

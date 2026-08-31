@@ -46,13 +46,23 @@ final class Block {
 		 * generate_block_asset_handle() builds from block.json: the block name
 		 * with its slash turned into a dash, plus the field.
 		 *
-		 * No path argument: for a plugin hosted on WordPress.org the JSON comes
-		 * from the language pack directory, and naming a directory here would
-		 * only describe where it is not.
+		 * The path is NOT optional, and the comment that used to say so was
+		 * wrong. Without it WordPress looks only in the language pack directory,
+		 * `WP_LANG_DIR/plugins/` -- so the French this plugin SHIPS was never
+		 * read, and the editor stayed in English however well it was translated.
+		 * Measured in the block editor: the whole sidebar in English while the
+		 * PHP side was already French. WordPress checks this directory first and
+		 * falls back to the language packs on its own, so naming it costs
+		 * nothing and is what a plugin carrying its own translations must do.
+		 *
+		 * And the file it reads is a JSON one -- `<domain>-<locale>-<md5>.json`,
+		 * built by `wp i18n make-json` from the .po. A .mo alone translates the
+		 * PHP and nothing else.
 		 */
 		wp_set_script_translations(
 			'hcfd-carousel-editor-script',
-			'hypermedia-carousel-for-datastar'
+			'hypermedia-carousel-for-datastar',
+			HCFD_PATH . 'languages'
 		);
 	}
 
