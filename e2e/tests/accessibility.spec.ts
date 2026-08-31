@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { FIXTURES } from '../fixtures';
-import { visibleSlide, waitForBurst } from '../helpers';
+import { controlName, visibleSlide, waitForBurst } from '../helpers';
 
 /**
  * A carousel that starts on its own is the textbook way to fail WCAG 2.2.2.
@@ -59,13 +59,21 @@ test.describe( 'accessibility', () => {
 		await page.goto( `/${ FIXTURES.many.slug }/` );
 		await waitForBurst( page, FIXTURES.many.slides );
 
-		await expect( page.locator( '.hcfd-button--toggle' ) ).toHaveAccessibleName( 'Pause slideshow' );
-		await page.locator( '.hcfd-button--toggle' ).click();
-		await expect( page.locator( '.hcfd-button--toggle' ) ).toHaveAccessibleName( 'Play slideshow' );
+		// The name is asserted as a behaviour, not as a string: the site under
+		// test may run in any language, and a suite that hard-codes English
+		// fails on a translated site while nothing is actually wrong.
+		const playing = await controlName( page, '.hcfd-button--toggle' );
+		expect( playing ).not.toBe( '' );
 
-		const paused = await visibleSlide( page );
+		await page.locator( '.hcfd-button--toggle' ).click();
+		const paused = await controlName( page, '.hcfd-button--toggle' );
+
+		expect( paused ).not.toBe( '' );
+		expect( paused ).not.toBe( playing );
+
+		const stopped = await visibleSlide( page );
 		await page.waitForTimeout( 12_000 );
-		expect( await visibleSlide( page ) ).toBe( paused );
+		expect( await visibleSlide( page ) ).toBe( stopped );
 	} );
 
 	test( 'it announces nothing while it moves on its own, and politely once it does not', async ( { page } ) => {
@@ -114,12 +122,19 @@ test.describe( 'accessibility', () => {
 		await page.goto( `/${ FIXTURES.many.slug }/` );
 		await waitForBurst( page, FIXTURES.many.slides );
 
-		const labels = await page.evaluate( () =>
+		const labels: string[] = await page.evaluate( () =>
 			[ ...document.querySelectorAll( '.hcfd-track > .hcfd-slide' ) ].map( ( s ) =>
 				s.getAttribute( 'aria-label' )
 			)
 		);
 
-		expect( labels ).toEqual( [ '1 of 5', '2 of 5', '3 of 5', '4 of 5', '5 of 5' ] );
+		// Every slide names its position and the total, in whatever language the
+		// site runs. Asserting the wording would test the translation instead.
+		expect( labels ).toHaveLength( FIXTURES.many.slides );
+		labels.forEach( ( label, index ) => {
+			expect( label ).toContain( String( index + 1 ) );
+			expect( label ).toContain( String( FIXTURES.many.slides ) );
+		} );
+		expect( new Set( labels ).size ).toBe( FIXTURES.many.slides );
 	} );
 } );

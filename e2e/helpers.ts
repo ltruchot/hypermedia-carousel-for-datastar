@@ -36,3 +36,20 @@ export async function streamUrl( page: Page ): Promise< string > {
 
 	return match[ 1 ];
 }
+
+/**
+ * The visible text of a control — its accessible name.
+ *
+ * `textContent` will not do: it returns the hidden label too, so the play and
+ * pause states come back as one identical string and an assertion on the change
+ * passes whatever happens.
+ */
+export async function controlName( page: Page, selector: string ): Promise< string > {
+	return page.evaluate( ( sel ) => {
+		const button = document.querySelector( sel );
+		const visible = [ ...( button?.querySelectorAll( '*' ) ?? [] ) ].filter(
+			( el ) => ! el.hasAttribute( 'hidden' )
+		);
+		return ( visible[ 0 ]?.textContent ?? button?.textContent ?? '' ).trim();
+	}, selector );
+}

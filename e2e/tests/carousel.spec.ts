@@ -28,7 +28,11 @@ test.describe( 'the carousel', () => {
 		expect( responses ).toEqual( [ 200 ] );
 		await expect( page.locator( '.hcfd-track > .hcfd-slide' ) ).toHaveCount( FIXTURES.many.slides );
 		await expect( page.locator( '.hcfd-slide:not([hidden])' ) ).toHaveCount( 1 );
-		expect( await visibleSlide( page ) ).toBe( `1 of ${ FIXTURES.many.slides }` );
+		// Asserted on the numbers, not on the wording: the site under test may
+		// run in any language, and "1 of 5" is "1 sur 5" on this one.
+		const label = await visibleSlide( page );
+		expect( label ).toContain( '1' );
+		expect( label ).toContain( String( FIXTURES.many.slides ) );
 	} );
 
 	test( 'rotates on a cadence the burst delivered', async ( { page } ) => {

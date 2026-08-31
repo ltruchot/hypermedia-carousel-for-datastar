@@ -99,6 +99,41 @@ final class PackagingTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Lists translation files of one extension, or an empty array.
+	 *
+	 * @param string $path      Domain path, leading slash included.
+	 * @param string $extension Extension without the dot.
+	 * @return array<string> Absolute paths.
+	 */
+	private static function files( string $path, string $extension ): array {
+		$found = glob( self::ROOT . $path . '/*.' . $extension );
+
+		return $found ? $found : array();
+	}
+
+	public function test_the_shipped_translations_are_where_the_header_says(): void {
+		// Without a Domain Path, WordPress looks for translations in the global
+		// language directory only, and the ones travelling with the plugin are
+		// never loaded. The symptom is a plugin that stays in English on a site
+		// that is not -- with nothing anywhere to say why.
+		$path = $this->header( 'hypermedia-carousel-for-datastar.php', 'Domain Path' );
+
+		$this->assertSame( '/languages', $path );
+		$this->assertDirectoryExists( self::ROOT . $path );
+		$this->assertFileExists( self::ROOT . $path . '/hypermedia-carousel-for-datastar.pot' );
+
+		// A .po beside a .mo, and never one without the other: the .mo is what
+		// WordPress reads, the .po is what a human can edit.
+		foreach ( self::files( $path, 'po' ) as $po ) {
+			$this->assertFileExists( substr( $po, 0, -3 ) . '.mo', basename( $po ) . ' has no compiled .mo.' );
+		}
+
+		foreach ( self::files( $path, 'mo' ) as $mo ) {
+			$this->assertFileExists( substr( $mo, 0, -3 ) . '.po', basename( $mo ) . ' has no source .po.' );
+		}
+	}
+
 	public function test_the_readme_stays_within_what_the_directory_accepts(): void {
 		$readme = (string) file_get_contents( self::ROOT . '/readme.txt' );
 
