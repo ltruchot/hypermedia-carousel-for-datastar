@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,6 +68,12 @@ reach the markup.
   if you prefer, but leave it in the accessibility tree.
 * `hcfd-track` — wraps the slides, and carries `aria-live`.
 * `hcfd-slide` — one slide. The ones off screen carry `hidden`.
+
+What the block does style, and why it is not a look: a minimum target size (24px,
+44px on a coarse pointer) and a focus ring that cannot vanish against a
+photograph. A control too small to hit or whose focus cannot be seen is broken,
+not unstyled. Both are minimums and one class deep, so a theme overrides either
+with a single rule.
 
 = Content-Security-Policy =
 
@@ -158,6 +164,14 @@ and every change made to it. `bin/vendor-datastar.sh` in the source repository i
 them.
 
 == Changelog ==
+
+= 0.1.4 =
+* French translation. The block is called « Diaporama ultraléger » there, which
+  is the word a French editor reaches for; the English keyword `carousel` is kept
+  so both searches find it.
+* The controls now carry an accessibility floor: a minimum target size and a
+  focus ring drawn in black and white so it cannot vanish against a photograph.
+  A control too small to hit is broken, not unstyled.
 
 = 0.1.3 =
 * The settings page is now built with `add_settings_section()` and

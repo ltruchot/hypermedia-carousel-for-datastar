@@ -31,6 +31,61 @@
 }
 
 /*
+ * The accessibility floor of the controls.
+ *
+ * This is not a look, and the distinction is the whole reason it lives here:
+ * a control too small to hit, or whose focus cannot be seen, is broken — for
+ * every site that installs this plugin, not just for the one that forgot to
+ * style it. "Ships no styles" cannot mean "ships broken controls and leaves
+ * each theme to discover it".
+ *
+ * Everything below is a floor, never a value: minimum sizes rather than sizes,
+ * and a focus ring in black and white because those are the only two colours
+ * that are guaranteed to contrast with each other. A theme raises any of it
+ * with a single class -- these selectors are one class deep on purpose.
+ */
+.wp-block-hcfd-carousel .hcfd-button {
+	/* WCAG 2.5.8 asks 24 by 24 for a pointer, and a finger needs 44. Minimums,
+	 * so a theme can make them bigger and never smaller. */
+	min-inline-size: 24px;
+	min-block-size: 24px;
+}
+
+@media (pointer: coarse) {
+	.wp-block-hcfd-carousel .hcfd-button {
+		min-inline-size: 44px;
+		min-block-size: 44px;
+	}
+}
+
+/*
+ * A focus ring that survives whatever is behind it.
+ *
+ * A single-colour outline over a photograph is a coin toss: white vanishes on
+ * a bright sky, black on a shadow. Two rings, one light and one dark, cannot
+ * both vanish -- whatever the pixel underneath, one of them contrasts with it.
+ * The same shape GOV.UK and GitHub use, and for the same reason.
+ */
+.wp-block-hcfd-carousel .hcfd-button:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 0;
+	box-shadow: 0 0 0 4px #000;
+}
+
+/*
+ * Forced colours paint their own focus ring and ignore ours, so the box-shadow
+ * would draw nothing while taking up room. Handing it back to the system is
+ * the correct answer there: it knows its own palette.
+ */
+@media (forced-colors: active) {
+	.wp-block-hcfd-carousel .hcfd-button:focus-visible {
+		outline: 2px solid CanvasText;
+		outline-offset: 2px;
+		box-shadow: none;
+	}
+}
+
+/*
  * Stopping the rotation itself is done in the expression that drives it, since
  * no stylesheet can stop a timer. This silences the animation.
  */

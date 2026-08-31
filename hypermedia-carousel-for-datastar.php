@@ -3,7 +3,7 @@
  * Plugin Name:       Hypermedia Carousel for Datastar
  * Plugin URI:        https://github.com/ltruchot/hypermedia-carousel-for-datastar
  * Description:       An image carousel that ships one slide in the page and streams the rest over Server-Sent Events.
- * Version:           0.1.3
+ * Version:           0.1.4
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Loïc Truchot
@@ -28,7 +28,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HCFD_VERSION', '0.1.3' );
+define( 'HCFD_VERSION', '0.1.4' );
 define( 'HCFD_FILE', __FILE__ );
 define( 'HCFD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'HCFD_URL', plugin_dir_url( __FILE__ ) );

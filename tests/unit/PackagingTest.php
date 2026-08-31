@@ -168,6 +168,67 @@ final class PackagingTest extends TestCase {
 		$this->assertContains( 'assets/vendor/datastar/datastar-1.0.3.js.map', $this->shipped_files() );
 	}
 
+	/**
+	 * Reads a .po or .pot into (context, id) => translation.
+	 *
+	 * @param string $path Absolute path.
+	 * @return array<string, string> Keyed by "context\x04id".
+	 */
+	private function catalogue( string $path ): array {
+		$entries = array();
+
+		foreach ( explode( "\n\n", (string) file_get_contents( $path ) ) as $block ) {
+			$context = null;
+			$id      = null;
+			$string  = null;
+
+			foreach ( explode( "\n", $block ) as $line ) {
+				if ( str_starts_with( $line, 'msgctxt "' ) ) {
+					$context = substr( $line, 9, -1 );
+				} elseif ( str_starts_with( $line, 'msgid "' ) ) {
+					$id = substr( $line, 7, -1 );
+				} elseif ( str_starts_with( $line, 'msgstr "' ) ) {
+					$string = substr( $line, 8, -1 );
+				}
+			}
+
+			if ( null !== $id && '' !== $id ) {
+				$entries[ ( $context ?? '' ) . "\x04" . $id ] = (string) $string;
+			}
+		}
+
+		return $entries;
+	}
+
+	public function test_no_translation_entry_was_lost_or_merged(): void {
+		// A gettext entry is identified by the pair (context, text), never by
+		// the text alone. "Hypermedia Carousel" exists twice — once with
+		// msgctxt "block title", once without — and a deduplication keyed on
+		// the text merged them, which silently left the block titled in English
+		// while everything around it was translated. Keywords kept working,
+		// which made it look like the translation was fine.
+		$pot = $this->catalogue( self::ROOT . '/languages/hypermedia-carousel-for-datastar.pot' );
+
+		$this->assertNotEmpty( $pot, 'The .pot is empty: this check would be vacuous.' );
+
+		foreach ( self::files( '/languages', 'po' ) as $translation ) {
+			$po = $this->catalogue( $translation );
+
+			$missing = array_keys( array_diff_key( $pot, $po ) );
+
+			$this->assertSame(
+				array(),
+				$missing,
+				sprintf(
+					'%s is missing %d entry/entries the .pot declares, e.g. %s',
+					basename( $translation ),
+					count( $missing ),
+					str_replace( "\x04", ' / ', (string) reset( $missing ) )
+				)
+			);
+		}
+	}
+
 	public function test_the_licence_is_declared_and_present(): void {
 		$this->assertSame(
 			'GPL v2 or later',
