@@ -2,7 +2,8 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Hypermedia Carousel for Datastar 0.1.3\n"
+"Project-Id-Version: Hypermedia Carousel for Datastar 0.2.0
+"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/hypermedia-carousel-for-datastar\n"
 "Last-Translator: Loïc Truchot\n"
 "Language-Team: Français\n"
@@ -11,7 +12,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-31T11:00:02+00:00\n"
+"POT-Creation-Date: 2026-08-31T15:40:05+00:00
+"
 "PO-Revision-Date: 2026-08-31 12:00+0200\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: hypermedia-carousel-for-datastar\n"
@@ -45,25 +47,9 @@ msgstr ""
 msgid "Image carousel"
 msgstr "Diaporama d’images"
 
-#: blocks/carousel/render.php:124
+#: blocks/carousel/render.php:122
 msgid "carousel"
 msgstr "diaporama"
-
-#: blocks/carousel/render.php:171
-msgid "Pause slideshow"
-msgstr "Mettre le diaporama en pause"
-
-#: blocks/carousel/render.php:174
-msgid "Play slideshow"
-msgstr "Lancer le diaporama"
-
-#: blocks/carousel/render.php:183
-msgid "Previous slide"
-msgstr "Image précédente"
-
-#: blocks/carousel/render.php:191
-msgid "Next slide"
-msgstr "Image suivante"
 
 #. translators: 1: required PHP version, 2: required WordPress version.
 #: hypermedia-carousel-for-datastar.php:55
@@ -71,49 +57,49 @@ msgstr "Image suivante"
 msgid "Hypermedia Carousel for Datastar requires PHP %1$s and WordPress %2$s or later."
 msgstr "Diaporama ultraléger via SSE demande PHP %1$s et WordPress %2$s ou plus récents."
 
-#: includes/class-settings.php:89
+#: includes/class-settings.php:91
 msgid "Settings"
 msgstr "Réglages"
 
 #. translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds.
-#: includes/class-settings.php:131
+#: includes/class-settings.php:133
 #, php-format
 msgid "The rotation interval must be between %1$d and %2$d seconds. Your value was adjusted."
 msgstr "L’intervalle de rotation doit être compris entre %1$d et %2$d secondes. Votre valeur a été ajustée."
 
-#: includes/class-settings.php:212
-#: includes/class-settings.php:213
+#: includes/class-settings.php:214
+#: includes/class-settings.php:215
 #: blocks/carousel/index.js:111
 msgid "Hypermedia Carousel"
 msgstr "Diaporama ultraléger"
 
-#: includes/class-settings.php:243
+#: includes/class-settings.php:245
 msgid "Seconds per slide"
 msgstr "Secondes par image"
 
-#: includes/class-settings.php:252
-msgid "View transition"
-msgstr "Transition de vue"
+#: includes/class-settings.php:254
+msgid "Transition between slides"
+msgstr "Transition entre les diapositives"
 
-#: includes/class-settings.php:266
+#: includes/class-settings.php:268
 msgid "Pick the images inside the Hypermedia Carousel block. This page holds the one setting shared by every carousel on the site."
 msgstr "Les images se choisissent dans le bloc Diaporama ultraléger. Cette page ne porte que les réglages communs à tous les diaporamas du site."
 
 #. translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds.
-#: includes/class-settings.php:292
+#: includes/class-settings.php:294
 #, php-format
 msgid "Between %1$d and %2$d. A carousel of a single image never rotates, whatever this says."
 msgstr "Entre %1$d et %2$d. Un diaporama d’une seule image ne tourne jamais, quoi que dise ce réglage."
 
-#: includes/class-settings.php:307
-msgid "Cross-fade — the browser fades one slide into the next"
-msgstr "Fondu — le navigateur fait passer une image dans l’autre"
+#: includes/class-settings.php:309
+msgid "Cross-fade — one slide fades into the next"
+msgstr "Fondu enchaîné — une image se fond dans la suivante"
 
-#: includes/class-settings.php:308
+#: includes/class-settings.php:310
 msgid "None — the slide is simply replaced"
 msgstr "Aucune — l’image est simplement remplacée"
 
-#: includes/class-settings.php:320
+#: includes/class-settings.php:322
 msgid "Visitors who asked their system for reduced motion never get a transition, whatever this says."
 msgstr "Les visiteurs qui ont demandé un mouvement réduit à leur système n’ont jamais de transition, quoi que dise ce réglage."
 
@@ -208,3 +194,4 @@ msgstr "galerie"
 msgctxt "block keyword"
 msgid "slider"
 msgstr "carrousel"
+

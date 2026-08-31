@@ -33,11 +33,13 @@ final class Settings {
 	public const MAX_INTERVAL = 60;
 
 	/**
-	 * View transitions the block can ask the browser for.
+	 * Transitions the stylesheet knows how to run between two slides.
 	 *
-	 * The slides arrive from the server, so what happens between two of them is
-	 * a View Transition and not a CSS animation: the browser takes a snapshot
-	 * either side of the patch and interpolates between them.
+	 * A cross-fade of two stacked images, and not a View Transition, which was
+	 * the first implementation and was wrong: startViewTransition snapshots the
+	 * document element, so every swap cross-faded the whole viewport over
+	 * itself -- 597 604 pixels changed outside the carousel on one measured
+	 * swap. See blocks/carousel/style.css.
 	 *
 	 * Deliberately a list rather than a boolean: `none` and `fade` are what
 	 * exists today, and the next one is meant to slot in beside them without
@@ -249,7 +251,7 @@ final class Settings {
 
 		add_settings_field(
 			'hcfd_transition',
-			__( 'View transition', 'hypermedia-carousel-for-datastar' ),
+			__( 'Transition between slides', 'hypermedia-carousel-for-datastar' ),
 			array( __CLASS__, 'render_transition_field' ),
 			self::PAGE,
 			self::SECTION,
@@ -304,7 +306,7 @@ final class Settings {
 	 */
 	public static function render_transition_field(): void {
 		$labels  = array(
-			'fade' => __( 'Cross-fade — the browser fades one slide into the next', 'hypermedia-carousel-for-datastar' ),
+			'fade' => __( 'Cross-fade — one slide fades into the next', 'hypermedia-carousel-for-datastar' ),
 			'none' => __( 'None — the slide is simply replaced', 'hypermedia-carousel-for-datastar' ),
 		);
 		$current = self::transition();

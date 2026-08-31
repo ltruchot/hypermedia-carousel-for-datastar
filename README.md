@@ -43,20 +43,37 @@ The block streams images into a container with an id and fades one into the
 next. That is its whole job.
 
 It ships **no sizing, no positioning, no colour and no icons**. Only the theme
-knows how big the box should be, how an image that does not match its shape
-should be cropped or padded or blurred at the edges, and where the controls
-belong — so those decisions are left where the knowledge is. A plugin that
-guessed would force every theme to out-specify the guess.
+knows how big the box should be, and how an image that does not match its shape
+should be cropped or padded or blurred at the edges — so those decisions are
+left where the knowledge is. A plugin that guessed would force every theme to
+out-specify the guess.
 
-`blocks/carousel/style.css` is forty lines and contains exactly two things: the
-`view-transition-name` that makes the browser cross-fade one slide into the
-next, and the promise that `prefers-reduced-motion` means no motion. Two class
-names are provided as hooks and never styled: `hcfd-sr` on the text inside a
-control, and `is-paused` on the play/pause button.
+`blocks/carousel/style.css` does exactly two things: it stacks the slides so two
+can be on screen at once, and it cross-fades the one arriving over the one
+leaving. `editor.css` is the one exception, and a narrow one: it lays the slides
+out flat in the editor so an author can see what they picked. None of it reaches
+a visitor.
 
-`editor.css` is the one exception, and a narrow one: it lays the slides out flat
-in the editor so an author can see what they picked. None of it reaches a
-visitor.
+### Why not a View Transition
+
+The slides arrive from the server, so `document.startViewTransition` is the
+obvious answer. It was the first implementation, and it was wrong.
+
+`startViewTransition` captures the **document element**: the root carries
+`view-transition-name: root` by default, so every swap cross-fades the entire
+viewport over itself. Measured on a real page, one swap at 1280×900: **597 604
+pixels changed outside the carousel**, over the full width and the full height.
+Decorative shapes elsewhere on the page flickered on a five second beat.
+
+Neutralising that means `::view-transition-old(root) { animation: none }`, and
+that rule is **document-wide** — a plugin has no business breaking the
+cross-document transitions a theme may run. The snapshot is also lifted into the
+top layer, escaping any mask or clip an ancestor applies to the image.
+
+A cross-fade of two stacked images cannot reach a pixel outside the track,
+cannot escape a mask, and needs no global rule. Measured again after the change,
+on the same page: nothing outside the carousel beyond what changing the
+photograph already touched.
 
 ## The styling contract
 
@@ -65,26 +82,21 @@ they are treated as one: they will not change without a major version and a
 changelog entry. A theme that styles them has no other way to reach the markup,
 so leaving them undocumented would make every such theme depend on an accident.
 
-| Class | What it is |
+| Name | What it is |
 |---|---|
-| `hcfd-carousel` | The container: id, ARIA region, and `--hcfd-name` when a view transition is on. |
-| `hcfd-controls` | The three buttons, first in the DOM so a keyboard reaches the stop button before the movement. |
-| `hcfd-button` + `--toggle` / `--prev` / `--next` | One control each. |
-| `is-paused` | On the toggle, while the carousel is stopped. |
-| `hcfd-sr` | The text inside a control. Visible by default; hide it and add an icon if you prefer, but leave it in the accessibility tree. |
-| `hcfd-track` | Wraps the slides, carries `aria-live`. |
-| `hcfd-slide` | One slide. Off-screen ones carry `hidden`. |
+| `hcfd-carousel` | The container: id, ARIA region, signals. |
+| `hcfd-live` | Added to the container once the burst has landed. |
+| `hcfd-track` | Wraps the slides and stacks them. |
+| `hcfd-slide` | One slide. The ones off screen carry `hidden`. |
+| `--hcfd-fade` | Custom property: the length of the cross-fade. Defaults to `600ms`; the plugin sets it to `0s` when the setting says no transition. |
 
-Two things **are** styled, and they are not a look: the reachable area of a
-control (24px, 44px on a coarse pointer) and a focus ring drawn in black *and*
-white so it cannot vanish against a photograph. The reachable area is widened
-with an invisible `::after`, not by resizing the button — WCAG 2.5.8 asks it of
-the target, not of what is drawn, and three 44px circles on a small carousel eat
-half its width. `::after` on a control is reserved for this and never painted;
-a theme has `::before` for its glyph. A control too small to hit, or whose
-focus cannot be seen, is broken rather than unstyled — and it would be broken
-for every site that installs this, not only for the one that forgot. Both are
-minimums, one class deep, and a theme overrides either with a single rule.
+`hcfd-live` exists for one reason, and it is worth knowing before you style
+around it. `@starting-style` fires on an element's **first** render, page load
+included — measured, a slide present in the initial HTML starts at opacity
+0.058. The first slide is almost always the LCP element, and fading it in would
+make this plugin pay in LCP precisely what it exists to save. So the entry half
+of the cross-fade is armed only once the burst has landed, and `hcfd-live` is
+what arms it.
 
 ## How it works
 

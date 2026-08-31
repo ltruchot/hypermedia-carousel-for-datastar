@@ -231,31 +231,39 @@ final class Sse_Endpoint {
 	 */
 	private static function cadence_element( string $target, string $signal ): string {
 		/*
-		 * The reduced-motion check lives inside the expression rather than in a
-		 * script file, and that is not a shortcut. CSS cannot stop an interval,
-		 * so something has to test the query -- and testing it on every tick
-		 * means a visitor who changes the system setting mid-visit is obeyed at
-		 * once, which a value read at load time could not do.
+		 * The whole behaviour, in one expression: unless the visitor asked for
+		 * reduced motion, step to the next slide and wrap around at the end.
+		 *
+		 * There is no __viewtransition modifier here, and its removal is the
+		 * fix for a bug rather than a simplification for its own sake.
+		 * startViewTransition captures the document element, so every swap
+		 * cross-faded the ENTIRE PAGE over itself -- measured on a real page,
+		 * one swap: 597 604 pixels changed outside the carousel, across the
+		 * whole viewport. Decorative shapes elsewhere on the page flickered on
+		 * a five second beat while the photograph appeared not to move.
+		 *
+		 * What made that flash possible was the PAIRING: the modifier called
+		 * startViewTransition whether or not the expression changed anything,
+		 * so the reduced-motion guard below -- which skips the assignment --
+		 * produced a full-page cross-fade over identical content. With the
+		 * modifier gone, a guard that changes nothing changes nothing.
+		 *
+		 * The guard stays in the expression rather than in a stylesheet because
+		 * CSS cannot stop an interval, and it is read on every tick so that a
+		 * visitor who turns the system setting on mid-visit is obeyed at once.
+		 * It carries more weight than it looks: this carousel ships no
+		 * controls, so it is the only stillness a visitor can ask for.
 		 */
 		$advance = sprintf(
-			'!$%1$s.paused'
-				. ' && !matchMedia(\'(prefers-reduced-motion: reduce)\').matches'
+			'!matchMedia(\'(prefers-reduced-motion: reduce)\').matches'
 				. ' && ($%1$s.view = ($%1$s.view + 1) %% $%1$s.count)',
 			$signal
 		);
 
-		// The modifier goes in only when a View Transition was asked for.
-		// Wrapping the change in startViewTransition without a
-		// view-transition-name on any slide makes the browser cross-fade the
-		// entire page -- far more motion than switching the setting off was
-		// meant to produce.
-		$modifier = 'fade' === Settings::transition() ? '__viewtransition' : '';
-
 		return sprintf(
-			'<div id="%1$s-cadence" hidden data-on-interval__duration.%2$ds%3$s="%4$s"></div>',
+			'<div id="%1$s-cadence" hidden data-on-interval__duration.%2$ds="%3$s"></div>',
 			esc_attr( $target ),
 			Settings::interval(),
-			esc_attr( $modifier ),
 			esc_attr( $advance )
 		);
 	}

@@ -37,15 +37,14 @@ $hcfd_dom_id = Slides::dom_id( $hcfd_ids, $hcfd_size, Block::next_instance() );
 $hcfd_signal = Slides::signal_key( $hcfd_dom_id );
 
 /*
- * Whether the browser is asked for a View Transition between two slides.
+ * The cross-fade, or the absence of one.
  *
- * It has to reach three places at once, and half of it would be worse than
- * none: without a view-transition-name on the slide, wrapping the change in
- * startViewTransition makes the browser cross-fade the WHOLE PAGE, which is a
- * good deal more motion than the visitor turned off.
+ * The stylesheet owns the fade and reads its length from --hcfd-fade, so
+ * turning the setting off is one declaration rather than a second code path:
+ * zero seconds is a cut. A theme that wants another length sets the same
+ * property.
  */
-$hcfd_fades = 'fade' === Settings::transition();
-$hcfd_vt    = $hcfd_fades ? '__viewtransition' : '';
+$hcfd_fade = 'fade' === Settings::transition() ? '' : ' style="--hcfd-fade:0s"';
 
 /*
  * The editor previews a dynamic block by rendering it through the REST block
@@ -56,7 +55,7 @@ $hcfd_vt    = $hcfd_fades ? '__viewtransition' : '';
  */
 $hcfd_is_preview = defined( 'REST_REQUEST' ) && REST_REQUEST;
 
-// One image never rotates, so it needs no shell, no controls and no stream.
+// One image never rotates, so it needs no shell and no stream.
 $hcfd_is_static = $hcfd_is_preview || 1 === $hcfd_n;
 
 $hcfd_wrapper = get_block_wrapper_attributes(
@@ -103,7 +102,6 @@ $hcfd_signals = wp_json_encode(
 			substr( $hcfd_signal, strlen( 'hcfd.' ) ) => array(
 				'view'   => 0,
 				'count'  => 1,
-				'paused' => false,
 				'loaded' => false,
 			),
 		),
@@ -123,88 +121,22 @@ $hcfd_init = sprintf(
 		role="region"
 		aria-roledescription="<?php esc_attr_e( 'carousel', 'hypermedia-carousel-for-datastar' ); ?>"
 		aria-label="<?php echo esc_attr( $hcfd_label ); ?>"
-		<?php
-		/*
-		 * Two elements may not carry the same view-transition-name at the same
-		 * moment, or the browser abandons the transition. Two carousels on one
-		 * page would do exactly that, so the name is derived per instance and
-		 * handed to the stylesheet through a custom property.
-		 *
-		 * Left unset when the transition is off: the stylesheet's
-		 * `view-transition-name: var(--hcfd-name)` then has nothing to resolve
-		 * to, the declaration falls back to `none`, and no snapshot is taken.
-		 */
-		if ( $hcfd_fades ) :
-			?>
-		style="--hcfd-name: <?php echo esc_attr( $hcfd_dom_id ); ?>"
-			<?php
-		endif;
-		?>
+		<?php echo $hcfd_fade; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a literal chosen above, not data. ?>
 		data-signals="<?php echo esc_attr( (string) $hcfd_signals ); ?>"
 		data-init__delay.500ms="<?php echo esc_attr( $hcfd_init ); ?>"
+		<?php
+		/*
+		 * Arms the entry half of the cross-fade, and only once the burst has
+		 * landed. @starting-style fires on an element's FIRST render, page load
+		 * included -- measured, a slide present in the initial HTML starts at
+		 * opacity 0.058. The first slide is almost always the LCP element, and
+		 * fading it in would make this plugin pay in LCP exactly what it exists to
+		 * save.
+		 */
+		?>
+		data-class:hcfd-live="<?php echo esc_attr( sprintf( '$%s.loaded', $hcfd_signal ) ); ?>"
 	>
-		<?php
-		/*
-		 * Controls come first in the DOM, and that is a requirement rather than
-		 * a preference: WCAG 2.2.2 asks for a way to stop moving content, and a
-		 * keyboard user who has to tab through the movement to reach the button
-		 * that stops the movement has not been given one.
-		 */
-		?>
-		<div class="hcfd-controls">
-			<button
-				type="button"
-				class="hcfd-button hcfd-button--toggle"
-				data-class:is-paused="$<?php echo esc_attr( $hcfd_signal ); ?>.paused"
-				data-on:click="$<?php echo esc_attr( $hcfd_signal ); ?>.paused = !$<?php echo esc_attr( $hcfd_signal ); ?>.paused"
-			>
-				<?php
-				/*
-				 * Two labels toggled by `hidden`, rather than one label swapped
-				 * inside the expression. The accessible name is then whichever
-				 * span is visible, the strings stay in gettext where a
-				 * translator can reach them, and no quoting problem arises from
-				 * putting a translated string inside a JavaScript expression.
-				 */
-				?>
-				<span class="hcfd-sr" data-attr:hidden="$<?php echo esc_attr( $hcfd_signal ); ?>.paused">
-					<?php esc_html_e( 'Pause slideshow', 'hypermedia-carousel-for-datastar' ); ?>
-				</span>
-				<span class="hcfd-sr" data-attr:hidden="!$<?php echo esc_attr( $hcfd_signal ); ?>.paused">
-					<?php esc_html_e( 'Play slideshow', 'hypermedia-carousel-for-datastar' ); ?>
-				</span>
-			</button>
-
-			<button
-				type="button"
-				class="hcfd-button hcfd-button--prev"
-				data-on:click<?php echo esc_attr( $hcfd_vt ); ?>="$<?php echo esc_attr( $hcfd_signal ); ?>.paused = true; $<?php echo esc_attr( $hcfd_signal ); ?>.view = ($<?php echo esc_attr( $hcfd_signal ); ?>.view + $<?php echo esc_attr( $hcfd_signal ); ?>.count - 1) % $<?php echo esc_attr( $hcfd_signal ); ?>.count"
-			>
-				<span class="hcfd-sr"><?php esc_html_e( 'Previous slide', 'hypermedia-carousel-for-datastar' ); ?></span>
-			</button>
-
-			<button
-				type="button"
-				class="hcfd-button hcfd-button--next"
-				data-on:click<?php echo esc_attr( $hcfd_vt ); ?>="$<?php echo esc_attr( $hcfd_signal ); ?>.paused = true; $<?php echo esc_attr( $hcfd_signal ); ?>.view = ($<?php echo esc_attr( $hcfd_signal ); ?>.view + 1) % $<?php echo esc_attr( $hcfd_signal ); ?>.count"
-			>
-				<span class="hcfd-sr"><?php esc_html_e( 'Next slide', 'hypermedia-carousel-for-datastar' ); ?></span>
-			</button>
-		</div>
-
-		<?php
-		/*
-		 * aria-live is off while the carousel advances on its own: announcing a
-		 * photograph every five seconds is hostile, not helpful. It becomes
-		 * polite once the visitor has taken control, because then the change is
-		 * the answer to something they did.
-		 */
-		?>
-		<div
-			class="hcfd-track"
-			aria-atomic="false"
-			data-attr:aria-live="$<?php echo esc_attr( $hcfd_signal ); ?>.paused ? 'polite' : 'off'"
-		>
+		<div class="hcfd-track">
 			<?php
 			echo Slides::render_slide( $hcfd_ids[0], $hcfd_size, 0, $hcfd_n, $hcfd_signal ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built by Slides, which escapes.
 			?>

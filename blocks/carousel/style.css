@@ -1,119 +1,104 @@
 /*
  * Everything this plugin has to say about appearance, and no more.
  *
- * The block is deliberately CSS-headless. It streams images into a container
- * with an id and fades one into the next; what that container looks like — how
- * big it is, how an image that does not match its shape is cropped, blurred,
- * letterboxed or masked, where the controls sit and what they look like — is
- * the theme's business, and only the theme knows enough to decide.
+ * The block is deliberately CSS-headless: it streams images into a container
+ * that the theme owns, and fades one into the next. How big that container is,
+ * how an image that does not match its shape is cropped, blurred, letterboxed
+ * or masked, is the theme's business -- only the theme knows enough to decide.
  *
- * So there is no sizing here, no positioning, no colour, no icon. A plugin that
- * shipped those would be guessing on the theme's behalf, and every theme would
- * then have to out-specify the guess.
+ * What is left is the mechanism, which is two things and nothing else:
  *
- * What is left is the mechanism itself:
+ *   1. the slides are stacked, so two of them can be on screen at once;
+ *   2. the one arriving fades in while the one leaving fades out.
  *
- *   1. the name that makes the browser cross-fade one slide into the next;
- *   2. the promise that reduced motion means no motion.
+ * One custom property is published as a hook: `--hcfd-fade`, the length of that
+ * cross-fade. A theme may set it; the plugin sets it to zero when the setting
+ * says no transition.
  *
- * Two hooks are provided for the theme and never styled here: `hcfd-sr` on the
- * text of a control, and `is-paused` on the play/pause button.
+ * WHY THIS IS NOT DONE WITH A VIEW TRANSITION, which is the obvious answer and
+ * was the first implementation. `document.startViewTransition` captures the
+ * WHOLE PAGE: the document element carries `view-transition-name: root` by
+ * default, so every swap cross-fades the entire viewport over itself. Measured
+ * on a real page, one swap, 1280x900: 597 604 pixels changed OUTSIDE the
+ * carousel, over the full width and the full height. Neutralising that means
+ * `::view-transition-old(root) { animation: none }`, which is a DOCUMENT-WIDE
+ * rule -- a plugin has no business breaking the cross-document transitions a
+ * theme may run. And the snapshot is lifted into the top layer, escaping any
+ * mask or clip an ancestor applies to the image.
+ *
+ * A cross-fade of two stacked images cannot reach a pixel outside the track,
+ * cannot escape a mask, and needs no global rule. It is also less code.
  */
 
-/*
- * The cross-fade. Two elements may not carry the same view-transition-name at
- * the same moment or the browser abandons the transition, so the name is per
- * instance -- the render sets --hcfd-name from the container's id -- and it is
- * scoped to the slide that is actually on screen.
- */
-.wp-block-hcfd-carousel .hcfd-slide:not([hidden]) {
-	view-transition-name: var(--hcfd-name);
-}
-
-/*
- * The accessibility floor of the controls.
- *
- * This is not a look, and the distinction is the whole reason it lives here:
- * a control too small to hit, or whose focus cannot be seen, is broken — for
- * every site that installs this plugin, not just for the one that forgot to
- * style it. "Ships no styles" cannot mean "ships broken controls and leaves
- * each theme to discover it".
- *
- * Everything below is a floor, never a value: minimum sizes rather than sizes,
- * and a focus ring in black and white because those are the only two colours
- * that are guaranteed to contrast with each other. A theme raises any of it
- * with a single class -- these selectors are one class deep on purpose.
- */
-.wp-block-hcfd-carousel .hcfd-button {
+.wp-block-hcfd-carousel .hcfd-track {
 	/*
-	 * The reachable area, widened without widening the control.
+	 * Every slide in one cell.
 	 *
-	 * WCAG 2.5.8 asks 24 by 24 for a pointer and a finger wants 44, but it asks
-	 * it of the TARGET, not of what is drawn. Forcing the visible button to 44
-	 * would hand every theme a decision that is theirs: on a small carousel
-	 * three 44px circles eat half the width, and the criterion never asked for
-	 * that. So the button keeps whatever size the theme gives it, and this
-	 * pseudo-element -- invisible, with no content -- extends what a finger can
-	 * hit.
-	 *
-	 * `::after` on a control is therefore reserved by this plugin and never
-	 * painted; a theme that needs one has `::before`, which is what the glyph
-	 * usually goes on.
+	 * This is mechanism, not looks: with no overlap there is nothing to
+	 * cross-fade, and the box would collapse to nothing each time the outgoing
+	 * slide left the flow.
 	 */
-	position: relative;
-
-	--hcfd-target: 24px;
-
-	&::after {
-		position: absolute;
-
-		/* Negative when the control is smaller than the target, zero when it is
-		 * already bigger: the area never shrinks below what is drawn. */
-		inset: min(0px, calc((100% - var(--hcfd-target)) / 2));
-		content: "";
-	}
+	display: grid;
 }
 
-@media (pointer: coarse) {
-	.wp-block-hcfd-carousel .hcfd-button {
-		--hcfd-target: 44px;
-	}
+.wp-block-hcfd-carousel .hcfd-slide {
+	grid-area: 1 / 1;
+	opacity: 1;
+
+	/*
+	 * `display` is in the list on purpose, with `allow-discrete`.
+	 *
+	 * A slide at rest carries the `hidden` attribute, so it is `display: none`
+	 * -- out of the accessibility tree and out of the tab order, which an
+	 * opacity-0 slide would not be. That is not negotiable, and it is also not
+	 * animatable: `display` jumps. `allow-discrete` makes the browser hold the
+	 * outgoing slide displayed for the length of the fade, and display the
+	 * incoming one before it -- which is exactly the pair of moments a
+	 * cross-fade needs.
+	 *
+	 * Measured, mid-swap: outgoing display:block opacity 0.80, incoming
+	 * display:block opacity 0.20. Once settled the outgoing is display:none.
+	 */
+	transition:
+		opacity var(--hcfd-fade, 600ms) ease,
+		display var(--hcfd-fade, 600ms) allow-discrete;
+}
+
+.wp-block-hcfd-carousel .hcfd-slide[hidden] {
+	opacity: 0;
 }
 
 /*
- * A focus ring that survives whatever is behind it.
+ * Where the incoming slide starts.
  *
- * A single-colour outline over a photograph is a coin toss: white vanishes on
- * a bright sky, black on a shadow. Two rings, one light and one dark, cannot
- * both vanish -- whatever the pixel underneath, one of them contrasts with it.
- * The same shape GOV.UK and GitHub use, and for the same reason.
+ * Without this it would appear at full opacity at once and only the outgoing
+ * one would fade. Going backwards that still reads as a cross-fade, because the
+ * outgoing slide is painted on top; going forwards it reads as an instant cut.
+ *
+ * `hcfd-live` is why this is scoped rather than global, and it is not
+ * decoration. @starting-style fires on an element's FIRST render, page load
+ * included -- measured: a slide present in the initial HTML starts at opacity
+ * 0.058. The first slide is almost always the LCP element, and fading it in
+ * would make this plugin pay in LCP exactly what it exists to save. The class
+ * is put on by Datastar the moment the burst lands, so the first paint is never
+ * caught by it and every later arrival is.
  */
-.wp-block-hcfd-carousel .hcfd-button:focus-visible {
-	outline: 2px solid #fff;
-	outline-offset: 0;
-	box-shadow: 0 0 0 4px #000;
-}
-
-/*
- * Forced colours paint their own focus ring and ignore ours, so the box-shadow
- * would draw nothing while taking up room. Handing it back to the system is
- * the correct answer there: it knows its own palette.
- */
-@media (forced-colors: active) {
-	.wp-block-hcfd-carousel .hcfd-button:focus-visible {
-		outline: 2px solid CanvasText;
-		outline-offset: 2px;
-		box-shadow: none;
+@starting-style {
+	.wp-block-hcfd-carousel .hcfd-live .hcfd-slide:not([hidden]) {
+		opacity: 0;
 	}
 }
 
 /*
- * Stopping the rotation itself is done in the expression that drives it, since
- * no stylesheet can stop a timer. This silences the animation.
+ * Reduced motion means no motion.
+ *
+ * The rotation itself is stopped where it is driven, since no stylesheet can
+ * stop a timer. This covers the narrow case that guard cannot: a swap already
+ * in flight when the visitor turns the system setting on, and any swap a theme
+ * drives by writing the signal itself.
  */
 @media (prefers-reduced-motion: reduce) {
-	::view-transition-old(*),
-	::view-transition-new(*) {
-		animation: none !important;
+	.wp-block-hcfd-carousel .hcfd-slide {
+		transition-duration: 0s;
 	}
 }

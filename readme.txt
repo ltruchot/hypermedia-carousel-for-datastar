@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.1.5
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,38 +43,31 @@ taken out of a small pool, and a slideshow is not worth a site's capacity.
 
 The block streams images into a container with an id and fades one into the
 next. That is all it does. It ships no sizing, no positioning, no colour and no
-icons, because only your theme knows how big the box should be, how an image
-that does not match its shape should be cropped or padded, and where the
-controls belong.
+icons, because only your theme knows how big the box should be and how an image
+that does not match its shape should be cropped or padded.
 
-Give it a container with a size and the images will fill it. Two class names are
-there for you to style and are never styled here: `hcfd-sr` on the text inside a
-control, and `is-paused` on the play/pause button.
+Give it a container with a size and the images will fill it.
 
 = Styling hooks =
 
-Since the block ships no styles, the class names below are its public surface.
-They are a **contract**: they will not change without a major version and a
-changelog entry saying so, because a theme that styles them has no other way to
-reach the markup.
+Since the block ships no styles, the names below are its public surface. They
+are a **contract**: they will not change without a major version and a changelog
+entry saying so, because a theme that styles them has no other way to reach the
+markup.
 
-* `hcfd-carousel` — the container. Carries the id, the ARIA region and, when a
-  view transition is on, the `--hcfd-name` custom property.
-* `hcfd-controls` — wraps the three buttons, first in the DOM so a keyboard
-  reaches the stop button before the movement.
-* `hcfd-button` with `hcfd-button--toggle`, `--prev`, `--next`.
-* `is-paused` — added to the toggle while the carousel is stopped.
-* `hcfd-sr` — the text inside a control. Left visible; hide it and add an icon
-  if you prefer, but leave it in the accessibility tree.
-* `hcfd-track` — wraps the slides, and carries `aria-live`.
+* `hcfd-carousel` — the container. Carries the id, the ARIA region and the
+  signals.
+* `hcfd-live` — added to the container once the stream has landed. It arms the
+  entry half of the cross-fade, and only then: `@starting-style` fires on an
+  element's first render, page load included, so arming it unconditionally would
+  fade in your first image — usually the largest thing on the page — on every
+  visit.
+* `hcfd-track` — wraps the slides and stacks them, so two can be on screen at
+  once during a fade.
 * `hcfd-slide` — one slide. The ones off screen carry `hidden`.
-
-What the block does style, and why it is not a look: the reachable area of a
-control (24px, 44px on a coarse pointer) — widened with an invisible `::after`
-rather than by resizing the button, so the size stays yours — and a focus ring
-that cannot vanish against a photograph. A control too small to hit or whose focus cannot be seen is broken,
-not unstyled. Both are minimums and one class deep, so a theme overrides either
-with a single rule.
+* `--hcfd-fade` — the length of the cross-fade. Defaults to 600ms; set it to
+  taste, or leave it alone. The plugin sets it to `0s` when the transition
+  setting is off.
 
 = Content-Security-Policy =
 
@@ -84,16 +77,25 @@ carousel stays on its first image rather than breaking anything.
 
 = Accessibility =
 
-Auto-rotating content is a common way to fail WCAG 2.2.2, so this block does not leave it to you:
+Read this before you install it. **This carousel starts on its own and offers no
+way to stop it.** It ships no play, pause or arrow buttons — that is deliberate,
+and it is a knowing failure of WCAG 2.2.2 (level A) on any page that carries
+other content beside it. If your site has to meet WCAG at level A, this is not
+the plugin for you, and no amount of theming will make it one.
 
-* a real pause button, reachable **before** the moving content in the tab order;
-* once paused, it never restarts on its own;
-* `prefers-reduced-motion: reduce` stops the rotation, and is re-checked on every tick, so
-  changing the system setting mid-visit is obeyed;
-* slides that are not on screen are removed from the tab order and from the accessibility tree;
-* announcements stay quiet while it rotates on its own, and become polite once the visitor takes
-  control;
-* alternative text comes from the media library, as written there.
+What it does do:
+
+* a visitor whose system asks for reduced motion gets **no rotation at all** —
+  the photograph they load is the photograph they keep. That is checked on every
+  tick, not once, so turning the setting on mid-visit is obeyed;
+* slides that are not on screen carry `hidden`, so they are out of the tab order
+  and out of the accessibility tree. An opacity-0 slide would be in both;
+* nothing is announced. There is no live region, so a screen reader is not read
+  a photograph every five seconds — and with nothing to press, there is no
+  moment at which announcing one would be a reply to anything the visitor did;
+* the carousel is a named ARIA region, every slide says its position and the
+  total, and alternative text comes from the media library exactly as written
+  there.
 
 == Frequently Asked Questions ==
 
@@ -166,6 +168,21 @@ them.
 
 == Changelog ==
 
+= 0.2.0 =
+* **The controls are gone** — no play, no pause, no arrows. The carousel starts
+  on load and does not stop. Breaking change: `hcfd-controls`, `hcfd-button`,
+  `hcfd-sr` and `is-paused` no longer exist.
+* **The cross-fade no longer goes through the View Transition API, which fixes a
+  bug on every site.** `startViewTransition` captures the document element, so
+  each swap cross-faded the whole viewport over itself — 597 604 pixels changed
+  outside the carousel on one swap, measured. Two stacked images and a CSS
+  transition cannot reach outside the block.
+* New hooks: `--hcfd-fade` for the length of the fade, and `hcfd-live` on the
+  container once the stream has landed.
+* Reduced motion now stops the rotation outright — with no pause button, it is
+  the only stillness a visitor can ask for.
+* The setting is now called "Transition between slides".
+
 = 0.1.5 =
 * The French name is now « Diaporama ultraléger via SSE ». "for Datastar" is an
   artefact of the English naming rule and reads, in French, as "aimed at Datastar
@@ -192,9 +209,8 @@ them.
   pointed at it.
 
 = 0.1.1 =
-* The block now ships only the cross-fade and the reduced-motion guarantee. All
-  sizing, positioning, colour and icons were removed: they are the theme's to
-  decide, and a plugin that guesses forces every theme to out-specify the guess.
+* All sizing, positioning, colour and icons were removed: they are the theme's
+  to decide, and a plugin that guesses forces every theme to out-specify it.
 
 = 0.1.0 =
 * First release.
