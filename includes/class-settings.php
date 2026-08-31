@@ -27,10 +27,16 @@ final class Settings {
 	private const SECTION = 'hcfd_main';
 
 	/** Shortest interval a human can follow, in seconds. */
-	public const MIN_INTERVAL = 3;
+	public const MIN_INTERVAL = 2.5;
 
 	/** Longest interval that still reads as a carousel rather than a bug. */
-	public const MAX_INTERVAL = 60;
+	public const MAX_INTERVAL = 25;
+
+	/** Shortest cross-fade the setting accepts, in milliseconds. */
+	public const MIN_DURATION = 100;
+
+	/** Longest cross-fade the setting accepts, in milliseconds. */
+	public const MAX_DURATION = 2000;
 
 	/**
 	 * Transitions the stylesheet knows how to run between two slides.
@@ -49,8 +55,9 @@ final class Settings {
 
 	/** Shipped defaults. */
 	public const DEFAULTS = array(
-		'interval'   => 5,
+		'interval'   => 5.0,
 		'transition' => 'fade',
+		'duration'   => 1000,
 	);
 
 	/**
@@ -124,15 +131,32 @@ final class Settings {
 		$raw      = is_array( $input ) && isset( $input['interval'] ) ? $input['interval'] : null;
 		$interval = self::to_interval( $raw );
 
-		if ( is_numeric( $raw ) && ( (int) $raw < self::MIN_INTERVAL || (int) $raw > self::MAX_INTERVAL ) ) {
+		if ( is_numeric( $raw ) && ( (float) $raw < self::MIN_INTERVAL || (float) $raw > self::MAX_INTERVAL ) ) {
 			add_settings_error(
 				self::OPTION,
 				'hcfd_interval_range',
 				sprintf(
 					/* translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds. */
-					__( 'The rotation interval must be between %1$d and %2$d seconds. Your value was adjusted.', 'hypermedia-carousel-for-datastar' ),
+					__( 'The rotation interval must be between %1$s and %2$s seconds. Your value was adjusted.', 'hypermedia-carousel-for-datastar' ),
 					self::MIN_INTERVAL,
 					self::MAX_INTERVAL
+				),
+				'warning'
+			);
+		}
+
+		$raw_duration = is_array( $input ) && isset( $input['duration'] ) ? $input['duration'] : null;
+
+		if ( is_numeric( $raw_duration )
+			&& ( (int) $raw_duration < self::MIN_DURATION || (int) $raw_duration > self::MAX_DURATION ) ) {
+			add_settings_error(
+				self::OPTION,
+				'hcfd_duration_range',
+				sprintf(
+					/* translators: 1: shortest allowed cross-fade, 2: longest allowed cross-fade, both in milliseconds. */
+					__( 'The cross-fade must last between %1$d and %2$d milliseconds. Your value was adjusted.', 'hypermedia-carousel-for-datastar' ),
+					self::MIN_DURATION,
+					self::MAX_DURATION
 				),
 				'warning'
 			);
@@ -143,6 +167,7 @@ final class Settings {
 			'transition' => self::to_transition(
 				is_array( $input ) && isset( $input['transition'] ) ? $input['transition'] : null
 			),
+			'duration'   => self::to_duration( $raw_duration ),
 		);
 	}
 
@@ -183,12 +208,15 @@ final class Settings {
 	 * @param mixed $value Raw value.
 	 * @return int Seconds, within range.
 	 */
-	private static function to_interval( $value ): int {
+	private static function to_interval( $value ): float {
 		if ( ! is_numeric( $value ) ) {
 			return self::DEFAULTS['interval'];
 		}
 
-		return max( self::MIN_INTERVAL, min( self::MAX_INTERVAL, (int) $value ) );
+		// Rounded to a tenth before clamping: the field offers half-seconds, but
+		// a value posted by hand should not store fifteen decimals into an
+		// attribute the browser then has to parse.
+		return max( self::MIN_INTERVAL, min( self::MAX_INTERVAL, round( (float) $value, 1 ) ) );
 	}
 
 	/**
@@ -197,10 +225,55 @@ final class Settings {
 	 * Never call get_option() for this directly: a site whose option row was
 	 * written by an older version, or by hand, can hold anything at all.
 	 */
-	public static function interval(): int {
+	public static function interval(): float {
 		$stored = wp_parse_args( (array) get_option( self::OPTION, array() ), self::DEFAULTS );
 
 		return self::to_interval( $stored['interval'] );
+	}
+
+	/**
+	 * The same interval, in whole milliseconds, for the cadence attribute.
+	 *
+	 * Datastar parses `__duration.<n>ms` and `__duration.<n>s` alike -- verified
+	 * in the shipped bundle, which reads a trailing `ms` first and only then a
+	 * trailing `s`. Milliseconds are used because the field accepts half
+	 * seconds, and `2.5s` in an attribute NAME is a dot too many in a place
+	 * where dots already separate modifiers.
+	 */
+	public static function interval_ms(): int {
+		return (int) round( self::interval() * 1000 );
+	}
+
+	/**
+	 * Turns whatever was submitted or stored into a usable number of milliseconds.
+	 *
+	 * Same reading as to_interval(): not absint(), which would mirror a negative
+	 * instead of refusing it, and a value that is not a number at all falls back
+	 * to the shipped default rather than to the floor -- the floor is a
+	 * boundary, not a preference.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return int Milliseconds, within range.
+	 */
+	private static function to_duration( $value ): int {
+		if ( ! is_numeric( $value ) ) {
+			return self::DEFAULTS['duration'];
+		}
+
+		return max( self::MIN_DURATION, min( self::MAX_DURATION, (int) $value ) );
+	}
+
+	/**
+	 * Returns the cross-fade length in milliseconds, always within range.
+	 *
+	 * Never call get_option() for this directly: a site whose option row was
+	 * written by an older version has no `duration` key at all, and
+	 * wp_parse_args() is what supplies it.
+	 */
+	public static function duration(): int {
+		$stored = wp_parse_args( (array) get_option( self::OPTION, array() ), self::DEFAULTS );
+
+		return self::to_duration( $stored['duration'] );
 	}
 
 	/**
@@ -242,7 +315,7 @@ final class Settings {
 
 		add_settings_field(
 			'hcfd_interval',
-			__( 'Seconds per slide', 'hypermedia-carousel-for-datastar' ),
+			__( 'Time on screen', 'hypermedia-carousel-for-datastar' ),
 			array( __CLASS__, 'render_interval_field' ),
 			self::PAGE,
 			self::SECTION,
@@ -256,6 +329,15 @@ final class Settings {
 			self::PAGE,
 			self::SECTION,
 			array( 'label_for' => 'hcfd-transition' )
+		);
+
+		add_settings_field(
+			'hcfd_duration',
+			__( 'Transition length', 'hypermedia-carousel-for-datastar' ),
+			array( __CLASS__, 'render_duration_field' ),
+			self::PAGE,
+			self::SECTION,
+			array( 'label_for' => 'hcfd-duration' )
 		);
 	}
 
@@ -282,16 +364,17 @@ final class Settings {
 			value="<?php echo esc_attr( (string) self::interval() ); ?>"
 			min="<?php echo esc_attr( (string) self::MIN_INTERVAL ); ?>"
 			max="<?php echo esc_attr( (string) self::MAX_INTERVAL ); ?>"
-			step="1"
+			step="0.5"
 			required
 			class="small-text"
 		>
+		<?php echo ' ' . esc_html__( 's', 'hypermedia-carousel-for-datastar' ); ?>
 		<p class="description">
 			<?php
 			echo esc_html(
 				sprintf(
 					/* translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds. */
-					__( 'Between %1$d and %2$d. A carousel of a single image never rotates, whatever this says.', 'hypermedia-carousel-for-datastar' ),
+					__( 'Between %1$s and %2$s seconds, by halves. A carousel of a single image never rotates, whatever this says.', 'hypermedia-carousel-for-datastar' ),
 					self::MIN_INTERVAL,
 					self::MAX_INTERVAL
 				)
@@ -302,7 +385,42 @@ final class Settings {
 	}
 
 	/**
-	 * Renders the view transition field.
+	 * Renders the cross-fade length field.
+	 */
+	public static function render_duration_field(): void {
+		?>
+		<input
+			type="number"
+			id="hcfd-duration"
+			name="<?php echo esc_attr( self::OPTION ); ?>[duration]"
+			value="<?php echo esc_attr( (string) self::duration() ); ?>"
+			min="<?php echo esc_attr( (string) self::MIN_DURATION ); ?>"
+			max="<?php echo esc_attr( (string) self::MAX_DURATION ); ?>"
+			step="50"
+			required
+			class="small-text"
+		>
+		<?php echo ' ' . esc_html__( 'ms', 'hypermedia-carousel-for-datastar' ); ?>
+		<p class="description">
+			<?php
+			echo esc_html(
+				sprintf(
+					/* translators: 1: shortest allowed cross-fade, 2: longest allowed cross-fade, both in milliseconds. */
+					__( 'Between %1$d and %2$d milliseconds. Ignored when the transition is off.', 'hypermedia-carousel-for-datastar' ),
+					self::MIN_DURATION,
+					self::MAX_DURATION
+				)
+			);
+			?>
+		</p>
+		<p class="description">
+			<?php esc_html_e( 'A page already in a cache keeps the length it was rendered with, so clear the cache after changing this.', 'hypermedia-carousel-for-datastar' ); ?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Renders the transition field.
 	 */
 	public static function render_transition_field(): void {
 		$labels  = array(

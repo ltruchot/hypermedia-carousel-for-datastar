@@ -47,7 +47,7 @@ msgstr ""
 msgid "Image carousel"
 msgstr "Diaporama d’images"
 
-#: blocks/carousel/render.php:122
+#: blocks/carousel/render.php:131
 msgid "carousel"
 msgstr "diaporama"
 
@@ -57,49 +57,77 @@ msgstr "diaporama"
 msgid "Hypermedia Carousel for Datastar requires PHP %1$s and WordPress %2$s or later."
 msgstr "Diaporama ultraléger via SSE demande PHP %1$s et WordPress %2$s ou plus récents."
 
-#: includes/class-settings.php:91
+#: includes/class-settings.php:98
 msgid "Settings"
 msgstr "Réglages"
 
 #. translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds.
-#: includes/class-settings.php:133
+#: includes/class-settings.php:140
 #, php-format
-msgid "The rotation interval must be between %1$d and %2$d seconds. Your value was adjusted."
-msgstr "L’intervalle de rotation doit être compris entre %1$d et %2$d secondes. Votre valeur a été ajustée."
+msgid "The rotation interval must be between %1$s and %2$s seconds. Your value was adjusted."
+msgstr "La durée d’affichage doit être comprise entre %1$s et %2$s secondes. Votre valeur a été ajustée."
 
-#: includes/class-settings.php:214
-#: includes/class-settings.php:215
+#. translators: 1: shortest allowed cross-fade, 2: longest allowed cross-fade, both in milliseconds.
+#: includes/class-settings.php:157
+#, php-format
+msgid "The cross-fade must last between %1$d and %2$d milliseconds. Your value was adjusted."
+msgstr "Le fondu doit durer entre %1$d et %2$d millisecondes. Votre valeur a été ajustée."
+
+#: includes/class-settings.php:287
+#: includes/class-settings.php:288
 #: blocks/carousel/index.js:111
 msgid "Hypermedia Carousel"
 msgstr "Diaporama ultraléger"
 
-#: includes/class-settings.php:245
-msgid "Seconds per slide"
-msgstr "Secondes par image"
+#: includes/class-settings.php:318
+msgid "Time on screen"
+msgstr "Temps d’affichage"
 
-#: includes/class-settings.php:254
+#: includes/class-settings.php:327
 msgid "Transition between slides"
 msgstr "Transition entre les diapositives"
 
-#: includes/class-settings.php:268
+#: includes/class-settings.php:336
+msgid "Transition length"
+msgstr "Durée de la transition"
+
+#: includes/class-settings.php:350
 msgid "Pick the images inside the Hypermedia Carousel block. This page holds the one setting shared by every carousel on the site."
 msgstr "Les images se choisissent dans le bloc Diaporama ultraléger. Cette page ne porte que les réglages communs à tous les diaporamas du site."
 
-#. translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds.
-#: includes/class-settings.php:294
-#, php-format
-msgid "Between %1$d and %2$d. A carousel of a single image never rotates, whatever this says."
-msgstr "Entre %1$d et %2$d. Un diaporama d’une seule image ne tourne jamais, quoi que dise ce réglage."
+#: includes/class-settings.php:371
+msgid "s"
+msgstr "s"
 
-#: includes/class-settings.php:309
+#. translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds.
+#: includes/class-settings.php:377
+#, php-format
+msgid "Between %1$s and %2$s seconds, by halves. A carousel of a single image never rotates, whatever this says."
+msgstr "Entre %1$s et %2$s secondes, par demi-secondes. Un carrousel d’une seule image ne tourne jamais, quoi que dise ce réglage."
+
+#: includes/class-settings.php:403
+msgid "ms"
+msgstr "ms"
+
+#. translators: 1: shortest allowed cross-fade, 2: longest allowed cross-fade, both in milliseconds.
+#: includes/class-settings.php:409
+#, php-format
+msgid "Between %1$d and %2$d milliseconds. Ignored when the transition is off."
+msgstr "Entre %1$d et %2$d millisecondes. Sans effet si la transition est désactivée."
+
+#: includes/class-settings.php:417
+msgid "A page already in a cache keeps the length it was rendered with, so clear the cache after changing this."
+msgstr "Une page déjà en cache garde la durée avec laquelle elle a été rendue : videz le cache après avoir changé ce réglage."
+
+#: includes/class-settings.php:427
 msgid "Cross-fade — one slide fades into the next"
 msgstr "Fondu enchaîné — une image se fond dans la suivante"
 
-#: includes/class-settings.php:310
+#: includes/class-settings.php:428
 msgid "None — the slide is simply replaced"
 msgstr "Aucune — l’image est simplement remplacée"
 
-#: includes/class-settings.php:322
+#: includes/class-settings.php:440
 msgid "Visitors who asked their system for reduced motion never get a transition, whatever this says."
 msgstr "Les visiteurs qui ont demandé un mouvement réduit à leur système n’ont jamais de transition, quoi que dise ce réglage."
 

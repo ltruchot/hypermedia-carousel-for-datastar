@@ -42,7 +42,7 @@ test.describe( 'the carousel', () => {
 		// The element carrying data-on-interval arrives with the burst; it is
 		// not in the initial markup, which is what lets a cached page still get
 		// today's cadence.
-		await expect( page.locator( '[data-on-interval__duration\\.5s]' ) ).toHaveCount( 1 );
+		await expect( page.locator( '[data-on-interval__duration\\.5000ms]' ) ).toHaveCount( 1 );
 
 		const before = await visibleSlide( page );
 		await page.waitForTimeout( 6_500 );
@@ -87,24 +87,53 @@ test.describe( 'the carousel', () => {
 		);
 		await page.waitForTimeout( 900 );
 
-		const onScreen = await page.evaluate( () =>
+		const layers = await page.evaluate( () =>
 			[ ...document.querySelectorAll( '.hcfd-track > .hcfd-slide' ) ]
-				.map( ( el ) => getComputedStyle( el ) )
-				.filter( ( style ) => style.display !== 'none' )
-				.map( ( style ) => Number( style.opacity ) )
+				.map( ( el, order ) => ( { order, style: getComputedStyle( el ) } ) )
+				.filter( ( layer ) => layer.style.display !== 'none' )
+				.map( ( layer ) => ( {
+					order: layer.order,
+					opacity: Number( layer.style.opacity ),
+					// `auto` paints as if it were 0 among siblings that have one.
+					z: 'auto' === layer.style.zIndex ? 0 : Number( layer.style.zIndex ),
+				} ) )
 		);
 
-		// Two slides on screen at once, neither of them settled. That is what a
-		// cross-fade IS -- one slide, or two at full opacity, is a cut. The
-		// assertion is written on the movement rather than on the absence of it,
-		// which is the mistake the suite made before: three tests asserted that
-		// nothing changed, and a carousel that had stopped working satisfied all
-		// three.
-		expect( onScreen ).toHaveLength( 2 );
-		onScreen.forEach( ( opacity ) => {
-			expect( opacity ).toBeGreaterThan( 0 );
-			expect( opacity ).toBeLessThan( 1 );
-		} );
+		// Two slides on screen at once: that is what makes it a dissolve rather
+		// than a cut.
+		expect( layers ).toHaveLength( 2 );
+
+		const fading = layers.filter( ( l ) => l.opacity > 0 && l.opacity < 1 );
+		const solid = layers.filter( ( l ) => 1 === l.opacity );
+		expect( fading ).toHaveLength( 1 );
+		expect( solid ).toHaveLength( 1 );
+
+		// 1. COVERAGE NEVER LEAVES 1.
+		//
+		// Fading both slides at once is the obvious way to write a cross-fade and
+		// it is wrong: two half-transparent layers do not add up to an opaque one.
+		// Measured mid-swap under that version, 0.49 over 0.51 covered 0.75 of the
+		// box -- a quarter of the container showing through, which on a light
+		// background reads as a FLASH OF LIGHT. Lengthening the fade made it worse,
+		// because the flash lasted longer.
+		const coverage = 1 - layers.reduce( ( rest, l ) => rest * ( 1 - l.opacity ), 1 );
+		expect( coverage ).toBeCloseTo( 1, 5 );
+
+		// 2. AND THE FADING LAYER IS THE ONE ON TOP.
+		//
+		// This second assertion exists because the first one alone is satisfied by
+		// a carousel that does not fade at all. Take the z-index off the outgoing
+		// slide and, going forward, the incoming one -- later in the DOM, fully
+		// opaque -- simply covers it: coverage stays 1, one layer is still
+		// somewhere between 0 and 1, every assertion above passes, and the visitor
+		// sees a hard cut. Measured: that sabotage left this test green until this
+		// assertion was added.
+		//
+		// Paint order among siblings is z-index first, then document order.
+		expect(
+			fading[ 0 ].z > solid[ 0 ].z ||
+				( fading[ 0 ].z === solid[ 0 ].z && fading[ 0 ].order > solid[ 0 ].order )
+		).toBe( true );
 
 		// And none of it goes through startViewTransition. That call snapshots the
 		// document element, so every swap cross-fades the entire viewport over

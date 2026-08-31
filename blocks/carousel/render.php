@@ -41,10 +41,19 @@ $hcfd_signal = Slides::signal_key( $hcfd_dom_id );
  *
  * The stylesheet owns the fade and reads its length from --hcfd-fade, so
  * turning the setting off is one declaration rather than a second code path:
- * zero seconds is a cut. A theme that wants another length sets the same
- * property.
+ * zero is a cut. A theme that wants another length sets the same property.
+ *
+ * The length rides in the rendered HTML rather than in the burst, unlike the
+ * interval. That is a real limitation and it is stated in the settings page:
+ * a page already in a cache keeps the length it was rendered with. The interval
+ * had to travel in the burst because data-on-interval parses its duration from
+ * the attribute NAME; a custom property has no such constraint, and putting it
+ * here keeps the swap correct even if the burst never arrives.
  */
-$hcfd_fade = 'fade' === Settings::transition() ? '' : ' style="--hcfd-fade:0s"';
+$hcfd_fade = sprintf(
+	' style="--hcfd-fade:%dms"',
+	'fade' === Settings::transition() ? Settings::duration() : 0
+);
 
 /*
  * The editor previews a dynamic block by rendering it through the REST block
@@ -124,17 +133,6 @@ $hcfd_init = sprintf(
 		<?php echo $hcfd_fade; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a literal chosen above, not data. ?>
 		data-signals="<?php echo esc_attr( (string) $hcfd_signals ); ?>"
 		data-init__delay.500ms="<?php echo esc_attr( $hcfd_init ); ?>"
-		<?php
-		/*
-		 * Arms the entry half of the cross-fade, and only once the burst has
-		 * landed. @starting-style fires on an element's FIRST render, page load
-		 * included -- measured, a slide present in the initial HTML starts at
-		 * opacity 0.058. The first slide is almost always the LCP element, and
-		 * fading it in would make this plugin pay in LCP exactly what it exists to
-		 * save.
-		 */
-		?>
-		data-class:hcfd-live="<?php echo esc_attr( sprintf( '$%s.loaded', $hcfd_signal ) ); ?>"
 	>
 		<div class="hcfd-track">
 			<?php

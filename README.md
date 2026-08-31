@@ -85,18 +85,26 @@ so leaving them undocumented would make every such theme depend on an accident.
 | Name | What it is |
 |---|---|
 | `hcfd-carousel` | The container: id, ARIA region, signals. |
-| `hcfd-live` | Added to the container once the burst has landed. |
 | `hcfd-track` | Wraps the slides and stacks them. |
 | `hcfd-slide` | One slide. The ones off screen carry `hidden`. |
-| `--hcfd-fade` | Custom property: the length of the cross-fade. Defaults to `600ms`; the plugin sets it to `0s` when the setting says no transition. |
+| `--hcfd-fade` | Custom property: the length of the cross-fade. The plugin writes the configured value here, or `0ms` when the setting says no transition; the stylesheet falls back to `1000ms` if it is unset. |
 
-`hcfd-live` exists for one reason, and it is worth knowing before you style
-around it. `@starting-style` fires on an element's **first** render, page load
-included — measured, a slide present in the initial HTML starts at opacity
-0.058. The first slide is almost always the LCP element, and fading it in would
-make this plugin pay in LCP precisely what it exists to save. So the entry half
-of the cross-fade is armed only once the burst has landed, and `hcfd-live` is
-what arms it.
+### Only one layer moves, and that is not a detail
+
+Fading both slides at once is the obvious way to write a cross-fade, and it is
+wrong. Two half-transparent layers do not add up to an opaque one: measured
+mid-swap, 0.49 over 0.51 covered **0.75** of the box, so a quarter of the
+container showed through. On a light background that reads as a **flash of
+light** rather than a dissolve — and lengthening the fade makes it worse,
+because the flash lasts longer.
+
+The slide that is leaving carries `hidden`, so the stylesheet puts it on top and
+fades it out over an incoming slide that is already fully opaque. Coverage never
+leaves 1. A theme that restyles `z-index` inside the track has to preserve that.
+
+It also means nothing fades **in**, which removes an entry animation the plugin
+used to have to arm after the burst — and with it the risk of fading in the
+first slide, almost always the LCP element, on every visit.
 
 ## How it works
 

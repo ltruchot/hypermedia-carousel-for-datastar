@@ -142,6 +142,10 @@ final class PackagingTest extends TestCase {
 		// Five tags at most, and a file over 10 KB "may result in errors".
 		$tags = array_filter( array_map( 'trim', explode( ',', $this->header( 'readme.txt', 'Tags' ) ) ) );
 		$this->assertLessThanOrEqual( 5, count( $tags ) );
+		// 10 Kio, et le budget se depense surtout en changelog. Il n'y a donc que
+		// la version courante dans `readme.txt`, l'historique vivant dans le depot :
+		// sans cette regle on recoupe le fichier a chaque sortie, ce qui est arrive
+		// trois fois de suite le 31/08/2026 avant qu'on s'en apercoive.
 		$this->assertLessThan( 10 * 1024, strlen( $readme ) );
 
 		// Tested up to takes digits, not "WP 6.8".

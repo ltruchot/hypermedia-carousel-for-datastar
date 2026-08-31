@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,17 +57,19 @@ markup.
 
 * `hcfd-carousel` — the container. Carries the id, the ARIA region and the
   signals.
-* `hcfd-live` — added to the container once the stream has landed. It arms the
-  entry half of the cross-fade, and only then: `@starting-style` fires on an
-  element's first render, page load included, so arming it unconditionally would
-  fade in your first image — usually the largest thing on the page — on every
-  visit.
 * `hcfd-track` — wraps the slides and stacks them, so two can be on screen at
   once during a fade.
 * `hcfd-slide` — one slide. The ones off screen carry `hidden`.
-* `--hcfd-fade` — the length of the cross-fade. Defaults to 600ms; set it to
-  taste, or leave it alone. The plugin sets it to `0s` when the transition
-  setting is off.
+* `--hcfd-fade` — the length of the cross-fade. The plugin writes your setting
+  here, or `0ms` when the transition is off; leave it unset in a theme and it
+  falls back to 1000ms.
+
+Only one layer moves, and a theme should keep it that way: the slide that is
+leaving carries `hidden` and is painted on top, fading out over an incoming
+slide that is already fully opaque. Fading both at once looks like the obvious
+way to do it and is not — two half-transparent layers do not add up to an opaque
+one, so a quarter of your container shows through in the middle of the swap,
+which on a light background reads as a flash of light.
 
 = Content-Security-Policy =
 
@@ -101,8 +103,13 @@ What it does do:
 
 = Where do I set the speed? =
 
-Settings → Hypermedia Carousel, between 3 and 60 seconds, for the whole site. Everything else
-lives in the block: choose the images the way you would in a Gallery block.
+Settings → Hypermedia Carousel. Two numbers, for the whole site: how long each image stays on
+screen (2.5 to 25 seconds, by halves) and how long the cross-fade takes (100 to 2000 ms). Everything
+else lives in the block: choose the images the way you would in a Gallery block.
+
+A page already held in a cache keeps the cross-fade length it was rendered with, so clear your
+cache after changing it. The interval does not have that problem — it travels in the stream, which
+is never cached.
 
 = Does it work with a strict Content-Security-Policy? =
 
@@ -168,49 +175,20 @@ them.
 
 == Changelog ==
 
-= 0.2.0 =
-* **The controls are gone** — no play, no pause, no arrows. The carousel starts
-  on load and does not stop. Breaking change: `hcfd-controls`, `hcfd-button`,
-  `hcfd-sr` and `is-paused` no longer exist.
-* **The cross-fade no longer goes through the View Transition API, which fixes a
-  bug on every site.** `startViewTransition` captures the document element, so
-  each swap cross-faded the whole viewport over itself — 597 604 pixels changed
-  outside the carousel on one swap, measured. Two stacked images and a CSS
-  transition cannot reach outside the block.
-* New hooks: `--hcfd-fade` for the length of the fade, and `hcfd-live` on the
-  container once the stream has landed.
-* Reduced motion now stops the rotation outright — with no pause button, it is
-  the only stillness a visitor can ask for.
-* The setting is now called "Transition between slides".
+= 0.3.0 =
+* **The cross-fade no longer flashes.** Both slides used to fade at once, and
+  two half-transparent layers do not add up to an opaque one: measured mid-swap,
+  0.49 over 0.51 covered 0.75 of the box, so a quarter of the container showed
+  through — a flash of light. The slide leaving is now painted on top and fades
+  out over one already opaque. Coverage never leaves 1.
+* **New setting: how long the cross-fade takes**, 100 to 2000 milliseconds,
+  1000 by default. A page held in a cache keeps the length it was rendered with.
+* Time on screen now accepts half seconds, 2.5 to 25 instead of 3 to 60. The
+  longest cross-fade stays under the shortest time on screen, so an image always
+  has a moment of rest.
+* Breaking change: `hcfd-live` is gone with the entry animation it armed.
+  Nothing fades in any more, so the first image — usually the largest thing on
+  the page — is painted at full opacity as soon as it arrives.
 
-= 0.1.5 =
-* The French name is now « Diaporama ultraléger via SSE ». "for Datastar" is an
-  artefact of the English naming rule and reads, in French, as "aimed at Datastar
-  users" — which it is not. "via SSE" says how it works.
-
-= 0.1.4 =
-* French translation. The block is called « Diaporama ultraléger » there, which
-  is the word a French editor reaches for; the English keyword `carousel` is kept
-  so both searches find it.
-* The controls now carry an accessibility floor: a minimum target size and a
-  focus ring drawn in black and white so it cannot vanish against a photograph.
-  A control too small to hit is broken, not unstyled.
-
-= 0.1.3 =
-* The settings page is now built with `add_settings_section()` and
-  `add_settings_field()`, as the Plugin Handbook prescribes, instead of a
-  hand-written table. Another plugin can now add a field to it.
-* Added the Development section the directory guidelines ask for whenever a
-  minified file ships.
-
-= 0.1.2 =
-* A Settings link now appears under the plugin on the plugins screen, as it does
-  for every other plugin. Without it the settings page existed and nothing
-  pointed at it.
-
-= 0.1.1 =
-* All sizing, positioning, colour and icons were removed: they are the theme's
-  to decide, and a plugin that guesses forces every theme to out-specify it.
-
-= 0.1.0 =
-* First release.
+Earlier releases: see the repository's history. Only the current release is kept
+here, because this file has a 10 KiB budget and a changelog grows for ever.

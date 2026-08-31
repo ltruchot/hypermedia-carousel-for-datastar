@@ -9,7 +9,7 @@
  * What is left is the mechanism, which is two things and nothing else:
  *
  *   1. the slides are stacked, so two of them can be on screen at once;
- *   2. the one arriving fades in while the one leaving fades out.
+ *   2. the one leaving fades out on top of the one arriving.
  *
  * One custom property is published as a hook: `--hcfd-fade`, the length of that
  * cross-fade. A theme may set it; the plugin sets it to zero when the setting
@@ -55,38 +55,33 @@
 	 * outgoing slide displayed for the length of the fade, and display the
 	 * incoming one before it -- which is exactly the pair of moments a
 	 * cross-fade needs.
-	 *
-	 * Measured, mid-swap: outgoing display:block opacity 0.80, incoming
-	 * display:block opacity 0.20. Once settled the outgoing is display:none.
 	 */
 	transition:
-		opacity var(--hcfd-fade, 600ms) ease,
-		display var(--hcfd-fade, 600ms) allow-discrete;
+		opacity var(--hcfd-fade, 1000ms) ease,
+		display var(--hcfd-fade, 1000ms) allow-discrete;
 }
 
 .wp-block-hcfd-carousel .hcfd-slide[hidden] {
 	opacity: 0;
-}
 
-/*
- * Where the incoming slide starts.
- *
- * Without this it would appear at full opacity at once and only the outgoing
- * one would fade. Going backwards that still reads as a cross-fade, because the
- * outgoing slide is painted on top; going forwards it reads as an instant cut.
- *
- * `hcfd-live` is why this is scoped rather than global, and it is not
- * decoration. @starting-style fires on an element's FIRST render, page load
- * included -- measured: a slide present in the initial HTML starts at opacity
- * 0.058. The first slide is almost always the LCP element, and fading it in
- * would make this plugin pay in LCP exactly what it exists to save. The class
- * is put on by Datastar the moment the burst lands, so the first paint is never
- * caught by it and every later arrival is.
- */
-@starting-style {
-	.wp-block-hcfd-carousel .hcfd-live .hcfd-slide:not([hidden]) {
-		opacity: 0;
-	}
+	/*
+	 * ONLY ONE LAYER MOVES, AND THAT IS WHAT KILLS THE FLASH.
+	 *
+	 * Fading both slides at once is the obvious way to write a cross-fade, and
+	 * it is wrong: two half-transparent layers do not add up to an opaque one.
+	 * Measured mid-swap, 0.49 over 0.51, the pair covered only 0.75 of the box
+	 * -- a quarter of the container showed through, which on a light background
+	 * reads as a flash of light rather than a dissolve. Lengthening the fade
+	 * makes that worse, not better, because the flash lasts longer.
+	 *
+	 * The slide that is LEAVING carries `hidden`, so this rule puts it on top,
+	 * where it fades out over an incoming slide that is already fully opaque.
+	 * Coverage never leaves 1. It also removes the need for an entry animation
+	 * altogether: nothing fades IN, so nothing has to be armed after the burst,
+	 * and the first slide -- almost always the LCP element -- is painted at full
+	 * opacity the moment it arrives.
+	 */
+	z-index: 1;
 }
 
 /*

@@ -260,10 +260,17 @@ final class Sse_Endpoint {
 			$signal
 		);
 
+		/*
+		 * Milliseconds, not seconds. The setting accepts half seconds, and the
+		 * duration lives in the attribute NAME, where a decimal point would sit
+		 * beside the dots that already separate modifiers. Datastar reads a
+		 * trailing `ms` before it reads a trailing `s` -- checked in the shipped
+		 * bundle, not assumed.
+		 */
 		return sprintf(
-			'<div id="%1$s-cadence" hidden data-on-interval__duration.%2$ds="%3$s"></div>',
+			'<div id="%1$s-cadence" hidden data-on-interval__duration.%2$dms="%3$s"></div>',
 			esc_attr( $target ),
-			Settings::interval(),
+			Settings::interval_ms(),
 			esc_attr( $advance )
 		);
 	}
