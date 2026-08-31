@@ -46,6 +46,27 @@
 	opacity: 1;
 
 	/*
+	 * Each slide paints as one piece, and this is load-bearing.
+	 *
+	 * Without it a slide is not a stacking context, so anything inside it that
+	 * carries a z-index -- a theme writing `img { position: relative; z-index: 1 }`
+	 * is enough, and a real one does -- is hoisted out and composited against a
+	 * far ancestor instead. The incoming image then paints ABOVE the outgoing
+	 * slide, whatever z-index the rule below gives it, and the fade becomes
+	 * invisible: a hard cut.
+	 *
+	 * Measured on a real page, mid-fade, outgoing slide at 0.78 opacity: the
+	 * frame differed from the settled AFTER state by 861 pixels out of 300 000
+	 * -- the outgoing slide was simply not being painted. With this line, the
+	 * same instant differs from both settled states, 240 061 and 296 586 pixels.
+	 *
+	 * `isolation` rather than a bigger z-index: the problem is not which value
+	 * wins, it is that a descendant escapes its slide at all. A theme may style
+	 * anything it likes inside a slide; it must not be able to lift it out.
+	 */
+	isolation: isolate;
+
+	/*
 	 * `display` is in the list on purpose, with `allow-discrete`.
 	 *
 	 * A slide at rest carries the `hidden` attribute, so it is `display: none`

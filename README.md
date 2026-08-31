@@ -106,6 +106,20 @@ It also means nothing fades **in**, which removes an entry animation the plugin
 used to have to arm after the burst — and with it the risk of fading in the
 first slide, almost always the LCP element, on every visit.
 
+### Each slide paints as one piece
+
+`isolation: isolate` on every slide is not tidiness, and it is part of the
+contract: **a theme may style anything inside a slide, and cannot lift it out.**
+
+Without it a slide is not a stacking context, so a descendant carrying a
+`z-index` — a theme writing `img { position: relative; z-index: 1 }` is enough,
+and a real one does — is composited against a far ancestor instead. The incoming
+image then paints above the outgoing slide whatever z-index the plugin gives it,
+and the fade becomes a hard cut.
+
+Measured mid-fade, outgoing slide at 0.78 opacity: **4 %** of the pixels
+differed from the settled result without the isolation, **95 %** with it.
+
 ## How it works
 
 1. The block's server render emits slide 1, the shell, the controls, and slides 2..n inside a

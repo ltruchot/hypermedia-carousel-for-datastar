@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { FIXTURES } from '../fixtures';
-import { streamUrl, visibleSlide, waitForBurst } from '../helpers';
+import { differingPixels, streamUrl, visibleSlide, waitForBurst } from '../helpers';
 
 test.describe( 'the carousel', () => {
 	test( 'ships one image and streams the rest', async ( { page, request } ) => {
@@ -143,6 +143,85 @@ test.describe( 'the carousel', () => {
 		expect(
 			await page.evaluate( () => ( window as unknown as Record< string, number > ).__vt )
 		).toBe( 0 );
+	} );
+
+	test( 'the fade is actually visible, under a theme that raises its images', async ( {
+		page,
+	} ) => {
+		await page.goto( `/${ FIXTURES.many.slug }/` );
+		await waitForBurst( page, FIXTURES.many.slides );
+
+		// A theme's rule, reproduced. This is not a hypothetical: a real one writes
+		// `img { position: relative; z-index: 1 }` inside the slide, and that is
+		// enough to hoist the incoming image out of its slide and paint it ABOVE
+		// the outgoing one -- whatever z-index the plugin gives the outgoing slide.
+		// The fade then becomes a hard cut, and every style-based assertion in this
+		// file passes anyway. That is how 0.3.0 shipped.
+		//
+		// `--hcfd-fade` needs !important: the block writes it as an INLINE style,
+		// which beats a stylesheet. Without it this test would sample after the
+		// fade had ended and call a working carousel broken.
+		await page.addStyleTag( {
+			content: `
+				.hcfd-carousel { --hcfd-fade: 3s !important; }
+				/* The fixed box the plugin asks every theme to provide. Without it the
+				   track is as tall as whichever slide is showing, and the three frames
+				   below would not even be the same size. */
+				.hcfd-slide img {
+					position: relative;
+					z-index: 1;
+					display: block;
+					width: 400px;
+					height: 300px;
+					object-fit: cover;
+				}
+			`,
+		} );
+
+		const carousel = page.locator( '.hcfd-carousel' );
+		await page.evaluate( () => {
+			( window as unknown as Record< string, number > ).__swap = 0;
+			new MutationObserver( () => {
+				( window as unknown as Record< string, number > ).__swap++;
+			} ).observe( document.querySelector( '.hcfd-track' )!, {
+				subtree: true,
+				attributes: true,
+				attributeFilter: [ 'hidden' ],
+			} );
+		} );
+
+		const before = await carousel.screenshot();
+		await page.waitForFunction(
+			() => ( window as unknown as Record< string, number > ).__swap > 0,
+			null,
+			{ timeout: 25_000 }
+		);
+		await page.waitForTimeout( 500 );
+		const midway = await carousel.screenshot();
+		await page.waitForTimeout( 3_200 );
+		const after = await carousel.screenshot();
+
+		const [ settled, fromBefore, fromAfter ] = await Promise.all( [
+			differingPixels( page, before, after ),
+			differingPixels( page, midway, before ),
+			differingPixels( page, midway, after ),
+		] );
+
+		// The two settled frames must differ, or the fixture is showing the same
+		// photograph twice and nothing below would prove anything.
+		expect( settled ).toBeGreaterThan( 5_000 );
+
+		// The frame in between is neither of them. Expressed as a SHARE of the
+		// settled difference rather than a pixel count, so the threshold survives a
+		// change of viewport, of fixture images, or of screenshot scale.
+		//
+		// Measured on this fixture, at 500ms into a 3s fade:
+		//   with the slides isolated   95% and 99%
+		//   without                    100% and 4%   <- the swap is a hard cut
+		// A floor of 20% sits four times above the failure and five times below the
+		// success, which is the margin an absolute count of 5 000 did not have.
+		expect( fromBefore / settled ).toBeGreaterThan( 0.2 );
+		expect( fromAfter / settled ).toBeGreaterThan( 0.2 );
 	} );
 
 	test( 'it ships no controls, by design', async ( { page } ) => {

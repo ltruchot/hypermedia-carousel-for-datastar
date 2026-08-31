@@ -299,13 +299,64 @@ La neutralisation habituelle — `::view-transition-old(root) { animation: none 
 document**. Dans une extension distribuée, poser une règle qui casserait les transitions de
 navigation d'un thème est disqualifiant.
 
-**À faire, pour un composant** : garder l'état dans un signal, empiler les éléments et faire le
-fondu en CSS (`transition: opacity …, display … allow-discrete` plus `@starting-style`). Cela ne
-peut atteindre aucun pixel hors du conteneur, ne sort d'aucun masque, ne demande aucune règle
-globale — et l'attribut `hidden` reste utilisable, donc l'accessibilité ne paie rien. **À ne pas
-faire** : `__viewtransition` sur un composant. Le réserver à une vraie transition **de page**.
+**Correction du 31/08/2026, sur signalement de Loïc, et elle compte : il EXISTE une transition de
+vue scopée, mais pas là où on la cherchait.** La phrase « une transition de vue capture toute la
+page » est vraie du **modificateur client** et fausse du **patch serveur**. Les deux chemins
+n'appellent pas la même API, ce que seul le bundle dit :
 
-**Le piège de test qui va avec, et qui a laissé ce bug passer trois semaines.** Trois tests de bout
+| Chemin | Ce qu'appelle Datastar | Portée |
+|---|---|---|
+| `__viewtransition` sur `data-on*` | `document.startViewTransition(…)` | la page entière |
+| `useViewTransition` sur `datastar-patch-elements` | `document` | la page entière |
+| **+ `viewTransitionSelector`** | **`element.startViewTransition(…)`** | **le sous-arbre visé** |
+| `data-view-transition` (pose un `view-transition-name`) | — | **Pro**, hors de portée |
+
+Lu dans `datastar-1.0.3.js` : `let l = p; if (o) { const f = p.querySelector(o); if (f) l = f; }`
+puis `yt(l) ? l.startViewTransition(...) : ...`, avec `yt = e => "startViewTransition" in e`. C'est
+donc bien l'API **scopée** quand le sélecteur désigne un élément, avec repli silencieux si le
+navigateur ne la connaît pas. Côté serveur, les en-têtes `datastar-use-view-transition` et
+`datastar-selector` donnent la même chose pour une réponse HTML.
+
+**Ce que ça change, et ce que ça ne change pas.** Si le changement vient d'un **patch serveur**, on
+peut demander une transition de vue propre et scopée : c'est la bonne solution, et elle ne casse
+rien ailleurs. Si le changement est **piloté par le navigateur** — un signal, un intervalle, un
+clic — il n'y a pas de patch, donc pas de sélecteur, donc pas de portée : le modificateur reste
+document-wide, et le fondu CSS reste la seule réponse gratuite. Cette extension est dans le second
+cas **par conception** : la rotation tourne côté client précisément pour ne pas rappeler le serveur
+toutes les cinq secondes.
+
+**À faire, pour un composant piloté par le navigateur** : garder l'état dans un signal, empiler les
+éléments et faire le fondu en CSS. Cela ne peut atteindre aucun pixel hors du conteneur, ne sort
+d'aucun masque, ne demande aucune règle globale — et l'attribut `hidden` reste utilisable, donc
+l'accessibilité ne paie rien. **À ne pas faire** : `__viewtransition` sur un tel composant.
+
+**À faire, pour un composant piloté par le serveur** : `useViewTransition` **avec**
+`viewTransitionSelector` visant le conteneur. Sans le sélecteur, le second est aussi large que le
+premier.
+
+**Et le piège de mesure qui a coûté deux versions de plus : un style calculé n'est pas ce qu'on
+voit.** Le fondu CSS ci-dessus a été livré deux fois cassé, verdict des tests au vert à chaque
+coup, parce que toutes les assertions portaient sur `getComputedStyle` :
+
+1. **0.2.0** — les deux couches fondaient ensemble. Deux couches à moitié transparentes ne font pas
+   une couche opaque : mesuré à mi-échange, 0,49 sur 0,51 ne couvraient que **0,75** de la boîte, et
+   le quart de fond qui traversait se voyait comme un **éclair**. Parade : la sortante porte
+   `hidden`, on la passe **au-dessus** et elle s'efface sur une entrante déjà opaque.
+2. **0.3.0** — la sortante était bien à `z-index: 1`… et restait invisible. Une diapositive n'était
+   pas un **contexte d'empilement**, donc un thème qui écrit `img { position: relative; z-index: 1 }`
+   à l'intérieur en extrayait l'image entrante et la peignait par-dessus. Mesuré, sortante à 0,78
+   d'opacité : l'image à mi-fondu différait de l'état d'arrivée de **4 %** des pixels — une coupe
+   sèche. Parade : `isolation: isolate` sur chaque diapositive. Même instant, **95 %** et **99 %**.
+
+**La leçon commune, et elle vaut pour tout CSS d'extension** : `opacity`, `z-index` et `display`
+lus au calcul décrivent une **intention**, pas une peinture. Ce qui décide, c'est l'ordre
+d'empilement — et il dépend de ce que le **thème** met dans l'élément, ce qu'une page de fixture nue
+ne montre jamais. **À faire** : mesurer en **pixels**, sur une page où l'on a injecté ce qu'un vrai
+thème écrit. Le navigateur sous test décode lui-même les captures (`Image` + canvas), donc cela ne
+coûte aucune dépendance. **À ne pas faire** : conclure d'un `getComputedStyle`, ni d'un test
+d'atteinte (`elementFromPoint`) — essayé, il ne distingue pas les deux états.
+
+**Le piège de test qui va avec, et qui a laissé le premier bug passer trois semaines.** Trois tests de bout
 en bout affirmaient qu'une image **ne bougeait pas** (mouvement réduit, pause, pause qui ne repart
 pas). C'est le symptôme exact du défaut : ils étaient verts pendant que le carrousel était figé et
 que la page clignotait. Une assertion d'immobilité n'est pas seulement faible, elle est **satisfaite

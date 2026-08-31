@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -174,6 +174,16 @@ and every change made to it. `bin/vendor-datastar.sh` in the source repository i
 them.
 
 == Changelog ==
+
+= 0.3.1 =
+* **The cross-fade was invisible under some themes, and 0.3.0 shipped it that
+  way.** A slide was not a stacking context, so a theme writing
+  `img { position: relative; z-index: 1 }` inside it lifted the incoming image
+  out and painted it above the outgoing slide. Measured mid-fade with the
+  outgoing slide at 0.78 opacity: the frame differed from the settled result by
+  4 % of the pixels — a hard cut. Each slide now paints as one piece
+  (`isolation: isolate`), and the same instant differs by 95 % and 99 %.
+* A theme may style anything inside a slide; it can no longer lift it out.
 
 = 0.3.0 =
 * **The cross-fade no longer flashes.** Both slides used to fade at once, and
