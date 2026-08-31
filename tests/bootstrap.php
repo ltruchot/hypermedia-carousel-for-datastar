@@ -23,6 +23,8 @@ require_once __DIR__ . '/../vendor/autoload.php';
 // The plugin's classes guard themselves with this, as every WordPress file must.
 defined( 'ABSPATH' ) || define( 'ABSPATH', __DIR__ . '/' );
 
+require_once __DIR__ . '/ShippedFiles.php';
+
 require_once __DIR__ . '/../includes/class-slides.php';
 require_once __DIR__ . '/../includes/class-settings.php';
 require_once __DIR__ . '/../includes/class-csp.php';

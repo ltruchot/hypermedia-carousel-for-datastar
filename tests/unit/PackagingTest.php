@@ -20,6 +20,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class PackagingTest extends TestCase {
 
+	use ShippedFiles;
+
 	private const ROOT = __DIR__ . '/../..';
 
 	private function header( string $file, string $key ): string {
@@ -150,6 +152,20 @@ final class PackagingTest extends TestCase {
 		$short = trim( explode( "\n", trim( explode( "\n\n", $readme, 3 )[1] ) )[0] );
 		$this->assertLessThanOrEqual( 150, strlen( $short ) );
 		$this->assertStringNotContainsString( '<', $short );
+	}
+
+	public function test_the_readme_says_where_the_source_is(): void {
+		// Guideline 4 treats minified JS with no documented source as a failure,
+		// and names the fix: a Development or Build section in readme.txt
+		// pointing at the source repository. One minified file ships here — the
+		// Datastar runtime — so the section is not optional.
+		$readme = (string) file_get_contents( self::ROOT . '/readme.txt' );
+
+		$this->assertMatchesRegularExpression( '/^== (Development|Build) ==$/m', $readme );
+		$this->assertStringContainsString( 'github.com/ltruchot/hypermedia-carousel-for-datastar', $readme );
+
+		// And the source map that makes that one file readable really ships.
+		$this->assertContains( 'assets/vendor/datastar/datastar-1.0.3.js.map', $this->shipped_files() );
 	}
 
 	public function test_the_licence_is_declared_and_present(): void {

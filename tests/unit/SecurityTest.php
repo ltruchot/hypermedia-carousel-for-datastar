@@ -21,83 +21,9 @@ use PHPUnit\Framework\TestCase;
  */
 final class SecurityTest extends TestCase {
 
+	use ShippedFiles;
+
 	private const ROOT = __DIR__ . '/../..';
-
-	/**
-	 * Lists the files the plugin ZIP would carry, honouring .distignore.
-	 *
-	 * The matching follows rsync's rules, because rsync is what builds the ZIP:
-	 * a pattern with a leading slash is anchored at the root, and one WITHOUT
-	 * matches a component at any depth. That distinction is not academic here --
-	 * an unanchored `vendor` would take `assets/vendor/` with it, and the plugin
-	 * would ship without the runtime it cannot start without.
-	 *
-	 * An earlier version of this helper anchored everything and only looked at
-	 * PHP files. It agreed with the code by accident and could not fail: two
-	 * deliberate breakages of .distignore both came back green.
-	 *
-	 * @param string $extension Extension to keep, or '*' for every file.
-	 * @return array<string> Paths relative to the plugin root.
-	 */
-	private function shipped_files( string $extension = '*' ): array {
-		$anchored = array();
-		$floating = array();
-
-		foreach ( file( self::ROOT . '/.distignore', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES ) as $line ) {
-			$line = trim( $line );
-
-			if ( '' === $line || str_starts_with( $line, '#' ) ) {
-				continue;
-			}
-
-			if ( str_starts_with( $line, '/' ) ) {
-				$anchored[] = ltrim( $line, '/' );
-			} else {
-				$floating[] = $line;
-			}
-		}
-
-		$excluded = static function ( string $relative ) use ( $anchored, $floating ): bool {
-			foreach ( $anchored as $pattern ) {
-				if ( $relative === $pattern || str_starts_with( $relative, $pattern . '/' ) ) {
-					return true;
-				}
-			}
-
-			foreach ( $floating as $pattern ) {
-				if ( in_array( $pattern, explode( '/', $relative ), true ) ) {
-					return true;
-				}
-			}
-
-			return false;
-		};
-
-		$root = (string) realpath( self::ROOT );
-
-		// Prune at descent, not after. vendor/ and .git/ hold tens of thousands
-		// of files; walking them and discarding the results afterwards runs the
-		// process out of memory before it reaches a single assertion.
-		$iterator = new \RecursiveIteratorIterator(
-			new \RecursiveCallbackFilterIterator(
-				new \RecursiveDirectoryIterator( $root, \FilesystemIterator::SKIP_DOTS ),
-				static function ( \SplFileInfo $file ) use ( $root, $excluded ): bool {
-					$relative = str_replace( '\\', '/', substr( $file->getPathname(), strlen( $root ) + 1 ) );
-					return ! $excluded( $relative );
-				}
-			)
-		);
-
-		$found = array();
-		foreach ( $iterator as $file ) {
-			if ( '*' === $extension || $extension === $file->getExtension() ) {
-				$found[] = str_replace( '\\', '/', substr( $file->getPathname(), strlen( $root ) + 1 ) );
-			}
-		}
-
-		sort( $found );
-		return $found;
-	}
 
 	/**
 	 * Reads a shipped file with its comments stripped.

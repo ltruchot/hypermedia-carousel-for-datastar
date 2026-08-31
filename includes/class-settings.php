@@ -23,6 +23,9 @@ final class Settings {
 	/** Slug of the settings page, under Settings. */
 	private const PAGE = 'hcfd';
 
+	/** The page's only section. */
+	private const SECTION = 'hcfd_main';
+
 	/** Shortest interval a human can follow, in seconds. */
 	public const MIN_INTERVAL = 3;
 
@@ -61,6 +64,7 @@ final class Settings {
 	public static function init(): void {
 		add_action( 'init', array( __CLASS__, 'register' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'add_page' ) );
+		add_action( 'admin_init', array( __CLASS__, 'add_fields' ) );
 
 		// The "Settings" link every other plugin shows under its own row on the
 		// plugins screen. WordPress does not infer it: without this filter the
@@ -214,13 +218,117 @@ final class Settings {
 	}
 
 	/**
+	 * Declares the section and the fields, through the Settings API.
+	 *
+	 * On `admin_init`, which is where the API expects them: these describe an
+	 * admin screen and have nothing to say on the front end.
+	 *
+	 * An earlier version printed the table by hand, on the grounds that two
+	 * fields did not justify three callbacks. That reasoning was wrong twice
+	 * over. It is what the Plugin Handbook prescribes, so it is what a reviewer
+	 * reads for; and a hand-written table cannot be extended -- with the API,
+	 * another plugin can add a field to this page, and this one can grow a
+	 * section without touching the page at all.
+	 */
+	public static function add_fields(): void {
+		add_settings_section(
+			self::SECTION,
+			'',
+			array( __CLASS__, 'render_section' ),
+			self::PAGE
+		);
+
+		add_settings_field(
+			'hcfd_interval',
+			__( 'Seconds per slide', 'hypermedia-carousel-for-datastar' ),
+			array( __CLASS__, 'render_interval_field' ),
+			self::PAGE,
+			self::SECTION,
+			array( 'label_for' => 'hcfd-interval' )
+		);
+
+		add_settings_field(
+			'hcfd_transition',
+			__( 'View transition', 'hypermedia-carousel-for-datastar' ),
+			array( __CLASS__, 'render_transition_field' ),
+			self::PAGE,
+			self::SECTION,
+			array( 'label_for' => 'hcfd-transition' )
+		);
+	}
+
+	/**
+	 * Says where the images are chosen, since they are not chosen here.
+	 */
+	public static function render_section(): void {
+		?>
+		<p>
+			<?php esc_html_e( 'Pick the images inside the Hypermedia Carousel block. This page holds the one setting shared by every carousel on the site.', 'hypermedia-carousel-for-datastar' ); ?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Renders the interval field.
+	 */
+	public static function render_interval_field(): void {
+		?>
+		<input
+			type="number"
+			id="hcfd-interval"
+			name="<?php echo esc_attr( self::OPTION ); ?>[interval]"
+			value="<?php echo esc_attr( (string) self::interval() ); ?>"
+			min="<?php echo esc_attr( (string) self::MIN_INTERVAL ); ?>"
+			max="<?php echo esc_attr( (string) self::MAX_INTERVAL ); ?>"
+			step="1"
+			required
+			class="small-text"
+		>
+		<p class="description">
+			<?php
+			echo esc_html(
+				sprintf(
+					/* translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds. */
+					__( 'Between %1$d and %2$d. A carousel of a single image never rotates, whatever this says.', 'hypermedia-carousel-for-datastar' ),
+					self::MIN_INTERVAL,
+					self::MAX_INTERVAL
+				)
+			);
+			?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Renders the view transition field.
+	 */
+	public static function render_transition_field(): void {
+		$labels  = array(
+			'fade' => __( 'Cross-fade — the browser fades one slide into the next', 'hypermedia-carousel-for-datastar' ),
+			'none' => __( 'None — the slide is simply replaced', 'hypermedia-carousel-for-datastar' ),
+		);
+		$current = self::transition();
+		?>
+		<select id="hcfd-transition" name="<?php echo esc_attr( self::OPTION ); ?>[transition]">
+			<?php foreach ( self::TRANSITIONS as $transition ) : ?>
+				<option value="<?php echo esc_attr( $transition ); ?>" <?php selected( $transition, $current ); ?>>
+					<?php echo esc_html( $labels[ $transition ] ?? $transition ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p class="description">
+			<?php esc_html_e( 'Visitors who asked their system for reduced motion never get a transition, whatever this says.', 'hypermedia-carousel-for-datastar' ); ?>
+		</p>
+		<?php
+	}
+
+	/**
 	 * Renders the settings page.
 	 *
-	 * Hand-written rather than run through add_settings_section() and
-	 * add_settings_field(): for a single number, those add three callbacks and
-	 * a layer of indirection without adding a thing a reader can use. The nonce
-	 * and the capability check still come from settings_fields() and
-	 * options.php, which is the part that actually matters.
+	 * The capability is checked again here even though add_options_page() will
+	 * not show the page without it: a direct request to the page slug reaches
+	 * this callback, and a screen that renders its form to whoever asks is one
+	 * change of mind about menu registration away from a hole.
 	 */
 	public static function render_page(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -230,77 +338,12 @@ final class Settings {
 		<div class="wrap">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-			<p>
-				<?php esc_html_e( 'Pick the images inside the Hypermedia Carousel block. This page holds the one setting shared by every carousel on the site.', 'hypermedia-carousel-for-datastar' ); ?>
-			</p>
-
 			<form action="options.php" method="post">
-				<?php settings_fields( self::GROUP ); ?>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th scope="row">
-							<label for="hcfd-interval">
-								<?php esc_html_e( 'Seconds per slide', 'hypermedia-carousel-for-datastar' ); ?>
-							</label>
-						</th>
-						<td>
-							<input
-								type="number"
-								id="hcfd-interval"
-								name="<?php echo esc_attr( self::OPTION ); ?>[interval]"
-								value="<?php echo esc_attr( (string) self::interval() ); ?>"
-								min="<?php echo esc_attr( (string) self::MIN_INTERVAL ); ?>"
-								max="<?php echo esc_attr( (string) self::MAX_INTERVAL ); ?>"
-								step="1"
-								required
-								class="small-text"
-							>
-							<p class="description">
-								<?php
-								echo esc_html(
-									sprintf(
-										/* translators: 1: shortest allowed interval, 2: longest allowed interval, both in seconds. */
-										__( 'Between %1$d and %2$d. A carousel of a single image never rotates, whatever this says.', 'hypermedia-carousel-for-datastar' ),
-										self::MIN_INTERVAL,
-										self::MAX_INTERVAL
-									)
-								);
-								?>
-							</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="hcfd-transition">
-								<?php esc_html_e( 'View transition', 'hypermedia-carousel-for-datastar' ); ?>
-							</label>
-						</th>
-						<td>
-							<select id="hcfd-transition" name="<?php echo esc_attr( self::OPTION ); ?>[transition]">
-								<?php
-								$hcfd_labels  = array(
-									'fade' => __( 'Cross-fade — the browser fades one slide into the next', 'hypermedia-carousel-for-datastar' ),
-									'none' => __( 'None — the slide is simply replaced', 'hypermedia-carousel-for-datastar' ),
-								);
-								$hcfd_current = self::transition();
-
-								foreach ( self::TRANSITIONS as $hcfd_transition ) {
-									printf(
-										'<option value="%1$s"%2$s>%3$s</option>',
-										esc_attr( $hcfd_transition ),
-										selected( $hcfd_transition, $hcfd_current, false ),
-										esc_html( $hcfd_labels[ $hcfd_transition ] ?? $hcfd_transition )
-									);
-								}
-								?>
-							</select>
-							<p class="description">
-								<?php esc_html_e( 'Visitors who asked their system for reduced motion never get a transition, whatever this says.', 'hypermedia-carousel-for-datastar' ); ?>
-							</p>
-						</td>
-					</tr>
-				</table>
-				<?php submit_button(); ?>
+				<?php
+				settings_fields( self::GROUP );
+				do_settings_sections( self::PAGE );
+				submit_button();
+				?>
 			</form>
 		</div>
 		<?php

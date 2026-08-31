@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,24 @@ The carousel disappears and leaves nothing behind: the block is rendered on the 
 content holds a block comment and no stale markup. Uninstalling removes the single option it
 stores.
 
+== Development ==
+
+The source lives at
+[github.com/ltruchot/hypermedia-carousel-for-datastar](https://github.com/ltruchot/hypermedia-carousel-for-datastar),
+and what is published here is that source: there is no build step, no bundler,
+and no minified file of our own. The editor script is plain ES5 written against
+`wp.element.createElement`, and the two `*.asset.php` files are written by hand.
+What you install is what you can read.
+
+The one minified file is the Datastar runtime, which is third party and ships
+with its source map beside it — see below.
+
+To run the checks:
+
+`composer install && composer exec -- phpunit` — unit tests
+`composer exec -- phpcs` — WordPress coding standards
+`cd e2e && BASE_URL=… npm test` — a real browser against a real site
+
 == Third-party code ==
 
 This plugin bundles two pieces of [Datastar](https://data-star.dev/), both MIT licensed, both
@@ -140,6 +158,13 @@ and every change made to it. `bin/vendor-datastar.sh` in the source repository i
 them.
 
 == Changelog ==
+
+= 0.1.3 =
+* The settings page is now built with `add_settings_section()` and
+  `add_settings_field()`, as the Plugin Handbook prescribes, instead of a
+  hand-written table. Another plugin can now add a field to it.
+* Added the Development section the directory guidelines ask for whenever a
+  minified file ships.
 
 = 0.1.2 =
 * A Settings link now appears under the plugin on the plugins screen, as it does
