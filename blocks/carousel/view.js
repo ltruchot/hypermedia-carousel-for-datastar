@@ -18,7 +18,13 @@
 	var root = document.documentElement;
 
 	/**
-	 * Two runtimes on one page.
+	 * Two runtimes on one page, which is fatal rather than untidy.
+	 *
+	 * Measured: with a second Datastar runtime present, the page made TWO calls
+	 * to the stream -- each runtime keeps its own signal store, so the guard
+	 * that is meant to prevent a second burst cannot see the other one -- and
+	 * stopped responding within 0.7 second. That is why this is an error and not
+	 * a warning, and why the message says what it says.
 	 *
 	 * Datastar exposes no global and carries no version string, so there is
 	 * nothing to ask it -- checked in the shipped bundle. What can be seen is
@@ -49,8 +55,10 @@
 		reported = true;
 		window.console.error(
 			PREFIX +
-				'Two or more Datastar runtimes are on this page, which means two ' +
-				'copies of the same library reacting to the same attributes:\n  ' +
+				'Two or more Datastar runtimes are on this page. This page will ' +
+				'stop responding: each runtime keeps its own state, so both react ' +
+				'to the same attributes and neither can see the other. Measured, ' +
+				'the page froze within a second.\n  ' +
 				runtimes.join( '\n  ' ) +
 				'\nPoint them at one file with the `hcfd_datastar_src` filter, or ' +
 				'stop one of the plugins from loading its own copy.'

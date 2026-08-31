@@ -15,5 +15,5 @@
 
 return array(
 	'dependencies' => array( 'hcfd-datastar' ),
-	'version'      => '0.5.0',
+	'version'      => '0.5.1',
 );

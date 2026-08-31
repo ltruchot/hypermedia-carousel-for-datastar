@@ -4,7 +4,7 @@ Tags: carousel, slideshow, gallery, images, accessibility
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,20 +189,11 @@ them.
 
 == Changelog ==
 
-= 0.5.0 =
-* **Images are one press away.** The block toolbar carries an **Images** button
-  showing how many the carousel holds. It used to be in the sidebar only, where
-  an author had no reason to look.
-* **The plugin says what went wrong, in the console.** A carousel that never
-  received its slides names its stream URL and what produces exactly that. Two
-  Datastar runtimes on one page are reported too.
-* New `hcfd_datastar_src` filter: a site already running Datastar can point this
-  plugin at that copy instead of loading a second one.
-* **The French translation now reaches the editor.** It never had:
-  `wp_set_script_translations()` was called without a path, so WordPress ignored
-  the translation this plugin ships and the whole sidebar stayed in English. The
-  JSON file the editor actually reads is shipped too.
-* The readme now explains how to use the block, which it did not.
+= 0.5.1 =
+* The message about two Datastar runtimes now says what actually happens.
+  Measured: the page makes two calls to the stream — each runtime keeps its own
+  state, so neither can see the other — and stops responding within a second.
+  It was worded as untidiness; it is fatal.
 
 Earlier releases: see the repository's history. Only the current release is kept
 here, because this file has a 10 KiB budget and a changelog grows for ever.
