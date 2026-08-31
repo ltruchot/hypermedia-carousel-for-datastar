@@ -6,6 +6,37 @@ Server-Sent Events burst, so a carousel costs what a single image costs.
 User-facing documentation lives in [`readme.txt`](readme.txt), which is what wordpress.org
 publishes. This file is for people reading the source.
 
+## Written by an agent
+
+**This plugin was coded end to end by Claude Opus 5, agentically** — design,
+implementation, tests, hardening and documentation — under the direction of
+[@ltruchot](https://github.com/ltruchot), who set the constraints, arbitrated
+the trade-offs and rejected the first answer more than once.
+
+That claim is only worth something if you can check it, so here is what it
+actually meant in practice:
+
+- **Nothing was asserted that had not been measured.** The burst is 3 585 bytes
+  and closes in 44 ms because that was measured on a running site, not
+  estimated. The security boundary is described by the responses the endpoint
+  actually gave to forged requests.
+- **Every test was qualified by breaking what it tests.** Eleven deliberate
+  sabotages of the code, ten caught on the first pass — and the eleventh
+  revealed a genuine gap, now covered. Four sabotages of `.distignore`, all
+  caught, but only after the first version of that check came back green twice
+  and had to be rewritten: it modelled different rules from the ones `rsync`
+  applies.
+- **The mistakes are in the git history rather than tidied out of it.** A lint
+  script that reported success while thirteen fatal errors scrolled past. A
+  documented limitation about Content-Security-Policy that the bundled version
+  had already fixed. A settings sanitiser that turned a submitted `-10` into ten
+  seconds. Each was found, fixed, and written down where the next person will
+  read it.
+
+If you want the reasoning behind a decision rather than the result, the commit
+messages carry it: they say what changed, what was measured, and what was
+rejected.
+
 ## How it works
 
 1. The block's server render emits slide 1, the shell, the controls, and slides 2..n inside a
