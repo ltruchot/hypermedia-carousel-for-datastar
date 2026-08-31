@@ -55,9 +55,24 @@ jobs:
         with:
           php-version: '8.1'
           coverage: none
-      # Runs the same checks the plugin directory runs on submission, against
-      # a tree built the way the ZIP is built -- .distignore included.
+      # Check what actually ships, not what is in the repository.
+      #
+      # Pointed at the root, the action flagged phpunit.xml.dist, .github/ and
+      # .claude/ -- none of which the ZIP carries. It was measuring the wrong
+      # tree, and a check that reports on files nobody will ever install trains
+      # whoever reads it to skim past the ones that matter.
+      - name: Build the tree that would be published
+        run: |
+          mkdir -p build/${{ github.event.repository.name }}
+          rsync -a --exclude-from=.distignore --exclude='/build' ./ build/${{ github.event.repository.name }}/
+
       - uses: WordPress/plugin-check-action@v1
         with:
-          build-dir: './'
-          exclude-directories: 'vendor,tests,e2e,bin'
+          build-dir: './build/${{ github.event.repository.name }}'
+          # The vendored Datastar SDK is third-party code, kept verbatim apart
+          # from its namespace and pinned by checksum in the unit tests. Its
+          # three findings are recorded, with the reason each one stands, in
+          # includes/datastar-php/UPSTREAM.md. Excluding it here keeps this job
+          # about OUR regressions; the reviewer still sees them on submission,
+          # which is where that conversation belongs.
+          exclude-directories: 'datastar-php'
