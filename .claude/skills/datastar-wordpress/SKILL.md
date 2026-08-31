@@ -36,8 +36,9 @@ toute façon la bonne pratique : on y gagne la validation déclarative.
 **5. La version du bundle JS et celle du SDK PHP ne se suivent pas.** Bundle en `v1.0.3`, SDK en
 `1.0.1`. Vérifier les deux séparément.
 
-**6. Datastar exige `unsafe-eval`.** Il évalue ses expressions avec `Function()`. Sous une CSP
-stricte, rien ne fonctionne, et rien ne le dit. Ça se documente, ça ne se contourne pas.
+**6. Datastar exige `unsafe-eval` — SAUF en mode CSP, arrivé en 1.0.3.** Il évalue ses
+expressions avec `Function()`. Sous une CSP stricte, rien ne fonctionne, et rien ne le dit dans
+l'interface. Le mode CSP lève ça ; voir plus bas.
 
 ## Le seul modèle de charge acceptable dans WordPress
 
@@ -157,6 +158,47 @@ $sse->patchElements( '<div id="xxx-cadence" hidden data-on-interval__duration.5s
 **Ordonner les événements.** Les patchs s'appliquent dans l'ordre reçu. Livrer le comportement
 **en dernier**, après les signaux dont il dépend : une cadence qui démarre avant que `count` soit
 juste fait défiler des vues qui n'existent pas.
+
+## Le mode CSP, et pourquoi il n'est pas ce qu'on croit
+
+**Datastar 1.0.3 ajoute un mode CSP, dans le bundle ordinaire — pas dans un bundle séparé.**
+J'ai d'abord écrit ici qu'une CSP stricte condamnait Datastar « et que ça ne se contournait pas ».
+C'était faux au moment même où je l'écrivais : la version qu'on embarquait déjà portait le
+correctif, sorti le 29/08/2026. C'est la note la plus utile de la page, parce qu'elle dit où j'ai
+cessé de vérifier.
+
+**Ce n'est pas un interpréteur restreint, c'est un nonce.** Les expressions compilent exactement
+pareil — `matchMedia()`, `%`, `&&`, les `;` multiples, tout continue de fonctionner. La page pose
+`<html data-nonce="…">`, Datastar le lit, **retire l'attribut**, et l'applique quand il compile.
+La disparition de l'attribut est d'ailleurs le meilleur signe qu'il a démarré.
+
+**Ce qu'un plugin doit faire, et surtout ne pas faire.** Ne jamais inventer le nonce : il ne vaut
+quelque chose que si la même valeur figure dans le `script-src` de la réponse, et seul ce qui
+émet cet en-tête peut le garantir. Un nonce inventé produit un attribut qui a l'air juste et ne
+protège rien. On expose donc un filtre, et on greffe l'attribut sur `language_attributes` :
+
+```php
+add_filter( 'language_attributes', function ( $out ) {
+    if ( is_admin() || str_contains( $out, 'data-nonce' ) ) { return $out; }
+    $nonce = (string) apply_filters( 'mon_csp_nonce', '' );
+    return '' === $nonce ? $out : $out . ' data-nonce="' . esc_attr( $nonce ) . '"';
+} );
+```
+
+Le garde `str_contains` n'est pas de la coquetterie : une seconde extension portant Datastar
+poserait un deuxième `data-nonce` sur la même balise, et le navigateur lirait celui qu'il a
+analysé en premier.
+
+**Mesuré des deux côtés, sous `script-src 'self' 'nonce-…'` sans `unsafe-eval`.** Avec le pont :
+l'attribut a disparu après le démarrage, la salve arrive, la rotation passe de « 1 sur 5 » à
+« 2 sur 5 ». Sans le pont, même CSP : la salve n'arrive pas, le composant reste figé, et la
+console dit `EvalError: … 'unsafe-eval' is not an allowed source`, suivi de
+`Error: GenerateExpression`.
+
+**Ce que le mode CSP ne fait pas** : il ne rend pas les expressions sûres vis-à-vis de contenu non
+fiable — la doc amont le dit en toutes lettres. Datastar n'examine ni ne nettoie ce qu'on écrit
+dans un attribut. On fait passer les valeurs d'utilisateur **par des signaux**, jamais par
+interpolation dans l'expression.
 
 ## Signaux : ils sont globaux
 

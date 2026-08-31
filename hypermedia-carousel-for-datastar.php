@@ -79,11 +79,13 @@ function hcfd_boot() {
 	require_once HCFD_PATH . 'includes/class-hcfd-settings.php';
 	require_once HCFD_PATH . 'includes/class-hcfd-slides.php';
 	require_once HCFD_PATH . 'includes/class-hcfd-assets.php';
+	require_once HCFD_PATH . 'includes/class-hcfd-csp.php';
 	require_once HCFD_PATH . 'includes/class-hcfd-block.php';
 	require_once HCFD_PATH . 'includes/class-hcfd-sse-endpoint.php';
 
 	HCFD\Settings::init();
 	HCFD\Assets::init();
+	HCFD\Csp::init();
 	HCFD\Block::init();
 	HCFD\Sse_Endpoint::init();
 }

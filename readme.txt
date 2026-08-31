@@ -39,6 +39,12 @@ The stream is a **single burst that closes at once** — a few hundredths of a s
 never holds a connection open, because on most PHP hosting one held connection is one worker
 taken out of a small pool, and a slideshow is not worth a site's capacity.
 
+= Content-Security-Policy =
+
+It runs under a strict policy, without `unsafe-eval`, provided you hand it your page nonce
+through the `hcfd_csp_nonce` filter — see the FAQ. Without that, under such a policy, the
+carousel stays on its first image rather than breaking anything.
+
 = Accessibility =
 
 Auto-rotating content is a common way to fail WCAG 2.2.2, so this block does not leave it to you:
@@ -61,10 +67,23 @@ lives in the block: choose the images the way you would in a Gallery block.
 
 = Does it work with a strict Content-Security-Policy? =
 
-No, and this is worth knowing before you install it. Datastar evaluates its expressions with the
-`Function()` constructor, so it needs `unsafe-eval` in `script-src`. Under a policy that forbids
-it, nothing rotates and the visitor sees the first image — no error, no broken layout, just a
-still picture.
+Yes, without `unsafe-eval`, if you hand it your page nonce. Datastar 1.0.3 — the version bundled
+here — added a CSP mode: it reads a nonce from the `<html>` tag and uses it when it compiles
+expressions.
+
+The plugin will not invent that nonce for you. A nonce is worth something only if the same value
+appears in the `script-src` directive of the response, and only whatever sends that header can
+guarantee the two match. So tell the plugin what it is:
+
+`add_filter( 'hcfd_csp_nonce', fn() => my_csp_nonce() );`
+
+The plugin then adds `data-nonce` to the opening `<html>` tag, and Datastar takes it from there.
+Your own `<script>` tags still need whatever your policy requires of them — that part is not this
+plugin's to solve.
+
+Return nothing, or install nothing, and the attribute is never added. Under a policy that forbids
+`unsafe-eval`, the carousel then stays on its first image: no error a visitor can see, no broken
+layout, just a still picture.
 
 = Does it phone home? =
 
