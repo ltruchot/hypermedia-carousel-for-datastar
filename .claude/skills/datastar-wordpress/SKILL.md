@@ -364,6 +364,15 @@ coup, parce que toutes les assertions portaient sur `getComputedStyle` :
    l'état visible, elle ferait aussi **fondre l'entrante**, et le flash du point 1 reviendrait
    (mesuré : 0,56 + 0,44, couverture 0,75).
 
+**Ce que WebKit en dit, et comment on le sait.** La parade par `visibility` a été confirmée **à la
+main par Loïc, sur Safari, le 01/09/2026** — « c'est juste parfait ». C'est une vraie mesure et
+c'est pourquoi le mécanisme est tenu pour bon sur les trois moteurs. Mais elle a été faite par une
+personne, une fois : **la suite ne la rejoue pas.** WebKit se télécharge sans problème et refuse de
+démarrer sur la machine de développement faute de trois bibliothèques système (`libicu74`,
+`libxml2`, `libflite1`) qu'il faut `sudo` pour poser. Le projet est donc absent de
+`playwright.config.ts`, et l'absence y est écrite plutôt que masquée par un « skip » — un saut
+silencieux se lit exactement comme un succès.
+
 **Corollaire, et c'est le plus cher des trois : un moteur n'est pas « evergreen ».** La suite de
 bout en bout de cette extension a tourné sur **Chromium seul** pendant trois versions, pendant que
 le readme annonçait des navigateurs evergreen. Le défaut ci-dessus était invisible par construction.

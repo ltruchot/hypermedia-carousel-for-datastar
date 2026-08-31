@@ -38,8 +38,22 @@ export default defineConfig( {
 	 * is reported as supported there and does not defer the change. Nothing in
 	 * a single-engine suite could have said so.
 	 *
-	 * WebKit would be a third and is not installed on every machine; it is left
-	 * out rather than made a silent skip that looks like a pass.
+	 * WebKit is a third, and it is NOT here — deliberately, and not because it
+	 * does not matter. Its binary downloads fine; launching it on this machine
+	 * needs three system libraries (libicu74, libxml2, libflite1) that only
+	 * `sudo` can install. Adding a project that cannot start would turn every
+	 * run red, and making it skip itself when unavailable would be worse: a
+	 * silent skip reads exactly like a pass.
+	 *
+	 * So it is left out and said out loud. To add it, once
+	 * `sudo npx playwright install-deps` has run:
+	 *
+	 *     { name: 'webkit', use: { ...devices[ 'Desktop Safari' ] } },
+	 *
+	 * What stands in for it today is a MANUAL check: Loïc opened the site in
+	 * Safari on 01/09/2026 and reported the cross-fade correct. That is a real
+	 * measurement and it is why the `visibility` mechanism is trusted there —
+	 * but it was made by a person, once, and this file cannot replay it.
 	 */
 	projects: [
 		{ name: 'desktop', use: { ...devices[ 'Desktop Chrome' ] } },
