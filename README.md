@@ -58,6 +58,23 @@ control, and `is-paused` on the play/pause button.
 in the editor so an author can see what they picked. None of it reaches a
 visitor.
 
+## The styling contract
+
+Because the block ships no styles, its class names are its public surface, and
+they are treated as one: they will not change without a major version and a
+changelog entry. A theme that styles them has no other way to reach the markup,
+so leaving them undocumented would make every such theme depend on an accident.
+
+| Class | What it is |
+|---|---|
+| `hcfd-carousel` | The container: id, ARIA region, and `--hcfd-name` when a view transition is on. |
+| `hcfd-controls` | The three buttons, first in the DOM so a keyboard reaches the stop button before the movement. |
+| `hcfd-button` + `--toggle` / `--prev` / `--next` | One control each. |
+| `is-paused` | On the toggle, while the carousel is stopped. |
+| `hcfd-sr` | The text inside a control. Visible by default; hide it and add an icon if you prefer, but leave it in the accessibility tree. |
+| `hcfd-track` | Wraps the slides, carries `aria-live`. |
+| `hcfd-slide` | One slide. Off-screen ones carry `hidden`. |
+
 ## How it works
 
 1. The block's server render emits slide 1, the shell, the controls, and slides 2..n inside a

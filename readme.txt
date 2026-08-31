@@ -51,6 +51,24 @@ Give it a container with a size and the images will fill it. Two class names are
 there for you to style and are never styled here: `hcfd-sr` on the text inside a
 control, and `is-paused` on the play/pause button.
 
+= Styling hooks =
+
+Since the block ships no styles, the class names below are its public surface.
+They are a **contract**: they will not change without a major version and a
+changelog entry saying so, because a theme that styles them has no other way to
+reach the markup.
+
+* `hcfd-carousel` — the container. Carries the id, the ARIA region and, when a
+  view transition is on, the `--hcfd-name` custom property.
+* `hcfd-controls` — wraps the three buttons, first in the DOM so a keyboard
+  reaches the stop button before the movement.
+* `hcfd-button` with `hcfd-button--toggle`, `--prev`, `--next`.
+* `is-paused` — added to the toggle while the carousel is stopped.
+* `hcfd-sr` — the text inside a control. Left visible; hide it and add an icon
+  if you prefer, but leave it in the accessibility tree.
+* `hcfd-track` — wraps the slides, and carries `aria-live`.
+* `hcfd-slide` — one slide. The ones off screen carry `hidden`.
+
 = Content-Security-Policy =
 
 It runs under a strict policy, without `unsafe-eval`, provided you hand it your page nonce
