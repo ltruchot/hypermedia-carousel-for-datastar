@@ -177,6 +177,11 @@ final class PackagingTest extends TestCase {
 		// la version courante dans `readme.txt`, l'historique vivant dans le depot :
 		// sans cette regle on recoupe le fichier a chaque sortie, ce qui est arrive
 		// trois fois de suite le 31/08/2026 avant qu'on s'en apercoive.
+		//
+		// Et le budget est desormais depense : mesure le 01/09/2026, il reste
+		// une cinquantaine d'octets. Toute addition se paie donc par un retrait,
+		// et la premiere chose a retirer reste le changelog de la version
+		// precedente -- pas une explication utile a qui installe le plugin.
 		$this->assertLessThan( 10 * 1024, strlen( $readme ) );
 
 		// Tested up to takes digits, not "WP 6.8".
@@ -201,6 +206,37 @@ final class PackagingTest extends TestCase {
 
 		// And the source map that makes that one file readable really ships.
 		$this->assertContains( 'assets/vendor/datastar/datastar-1.0.3.js.map', $this->shipped_files() );
+	}
+
+	public function test_every_filter_a_site_owner_can_use_is_documented(): void {
+		// A hook that exists only in the source is not an escape hatch: whoever
+		// needs it is reading readme.txt, not our PHP. Both of ours answer a
+		// failure a site cannot otherwise get out of -- a second Datastar
+		// runtime freezing the page, and a Content-Security-Policy nonce the
+		// plugin has no way to invent.
+		$readme = (string) file_get_contents( self::ROOT . '/readme.txt' );
+		$hooks  = array();
+
+		foreach ( array( '/includes', '/blocks/carousel' ) as $directory ) {
+			foreach ( self::files( $directory, 'php' ) as $file ) {
+				$source = (string) file_get_contents( $file );
+
+				if ( preg_match_all( '/apply_filters\(\s*\x27(hcfd_[a-z_]+)\x27/', $source, $matches ) ) {
+					$hooks = array_merge( $hooks, $matches[1] );
+				}
+			}
+		}
+
+		// Without this, a rename of every filter would leave the check green.
+		$this->assertNotEmpty( $hooks, 'No filter was found: this check would be vacuous.' );
+
+		foreach ( array_unique( $hooks ) as $hook ) {
+			$this->assertStringContainsString(
+				$hook,
+				$readme,
+				sprintf( '%s is a public filter and readme.txt never mentions it.', $hook )
+			);
+		}
 	}
 
 	/**

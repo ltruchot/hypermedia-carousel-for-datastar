@@ -145,6 +145,19 @@ Return nothing, or install nothing, and the attribute is never added. Under a po
 `unsafe-eval`, the carousel then stays on its first image: no error a visitor can see, no broken
 layout, just a still picture.
 
+= Another plugin already loads Datastar =
+
+Two runtimes on one page freeze it -- measured, within a second: each keeps its own state, both
+answer the same attributes, neither sees the other. WordPress cannot merge them, since each
+plugin registers its own module id. The browser console names the files when it happens.
+
+Point this plugin at the copy the site already loads:
+
+`add_filter( 'hcfd_datastar_src', fn() => 'https://example.com/datastar-1.0.3.js' );`
+
+The version has to be the one bundled here: an older runtime does not understand the attributes
+this block writes, and a newer one is untested.
+
 = Does it phone home? =
 
 No. The only request it makes is to your own site.
@@ -195,5 +208,5 @@ them.
   state, so neither can see the other — and stops responding within a second.
   It was worded as untidiness; it is fatal.
 
-Earlier releases: see the repository's history. Only the current release is kept
-here, because this file has a 10 KiB budget and a changelog grows for ever.
+Earlier releases: see the repository's history -- this file has a 10 KiB budget,
+so only the current release is kept here.
