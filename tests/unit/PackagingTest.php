@@ -214,20 +214,26 @@ final class PackagingTest extends TestCase {
 		// failure a site cannot otherwise get out of -- a second Datastar
 		// runtime freezing the page, and a Content-Security-Policy nonce the
 		// plugin has no way to invent.
+		// The sweep goes over everything the ZIP carries, and not over a list of
+		// directories: a filter added in a second block, or one directory deeper
+		// than the two that exist today, would otherwise never be looked at and
+		// the check would stay green while its guarantee stopped holding.
+		//
+		// Vendored code is swept too and cannot match: the pattern demands our
+		// own prefix, which nothing upstream writes.
 		$readme = (string) file_get_contents( self::ROOT . '/readme.txt' );
 		$hooks  = array();
 
-		foreach ( array( '/includes', '/blocks/carousel' ) as $directory ) {
-			foreach ( self::files( $directory, 'php' ) as $file ) {
-				$source = (string) file_get_contents( $file );
+		foreach ( $this->shipped_files( 'php' ) as $relative ) {
+			$source = (string) file_get_contents( self::ROOT . '/' . $relative );
 
-				if ( preg_match_all( '/apply_filters\(\s*\x27(hcfd_[a-z_]+)\x27/', $source, $matches ) ) {
-					$hooks = array_merge( $hooks, $matches[1] );
-				}
+			if ( preg_match_all( '/apply_filters\(\s*\x27(hcfd_[a-z_]+)\x27/', $source, $matches ) ) {
+				$hooks = array_merge( $hooks, $matches[1] );
 			}
 		}
 
-		// Without this, a rename of every filter would leave the check green.
+		// Without this, a rename of every filter -- or a sweep that reads nothing
+		// at all -- would leave the check green.
 		$this->assertNotEmpty( $hooks, 'No filter was found: this check would be vacuous.' );
 
 		foreach ( array_unique( $hooks ) as $hook ) {
